@@ -94,12 +94,19 @@ lib
 |   |   ├─ ReentrancyGuard.sol
 ```
 
+## Installation
+
+- This project is built on Foundry and should be compatible with the latest version ([installation guide](https://github.com/foundry-rs/foundry))
+- This project relies on the unix terminal program `jq` for certain test helpers ([installation guide](https://stedolan.github.io/jq/download/))
+
+## Building
+
+- To build the repository, call `forge build` in the console
+
 ## Testing
 
-This project is built with Foundry and should be compatible with the latest version.
-
-- To run the full test suite call `forge test -vvv` in the console
-- To run a specfic test file call `forge test -vvv path/to/file` in the console
+- To run the full test suite, call `forge test -vvv` in the console
+- To run a specfic test file, call `forge test -vvv path/to/file` in the console
 
 ## Single Sided Liquidity Vault (SSLV) Overview
 
