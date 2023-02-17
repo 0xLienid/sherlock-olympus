@@ -23,8 +23,6 @@ You can reference these audits here:
 
 ## On-chain context
 
-TO FILL IN BY PROTOCOL
-
 ```
 DEPLOYMENT: mainnet
 ERC20: OHM, wstETH, LDO, BAL, AURA
