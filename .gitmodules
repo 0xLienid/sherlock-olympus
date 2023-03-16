@@ -8,3 +8,7 @@
 	path = lib/forge-std
 	url = https://github.com/brockelmore/forge-std
 	branch = v1.4.0
+[submodule "lib/clones-with-immutable-args"]
+	path = lib/clones-with-immutable-args
+	url = https://github.com/wighawag/clones-with-immutable-args
+	branch = v1.0.0
