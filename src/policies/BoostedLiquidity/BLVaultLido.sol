@@ -159,7 +159,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         uint256 bptBefore = liquidityPool.balanceOf(address(this));
 
         // Transfer in wstETH
-        wsteth.transferFrom(msg.sender, address(this), amount_);
+        wsteth.safeTransferFrom(msg.sender, address(this), amount_);
 
         // Mint OHM
         manager.mintOhmToVault(ohmMintAmount);
@@ -185,7 +185,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         }
 
         if (unusedWsteth > 0) {
-            wsteth.transfer(msg.sender, unusedWsteth);
+            wsteth.safeTransfer(msg.sender, unusedWsteth);
         }
 
         // Emit event
@@ -231,14 +231,14 @@ contract BLVaultLido is IBLVaultLido, Clone {
             ? expectedWstethAmountOut
             : wstethAmountOut;
         if (wstethAmountOut > wstethToReturn)
-            wsteth.transfer(TRSRY(), wstethAmountOut - wstethToReturn);
+            wsteth.safeTransfer(TRSRY(), wstethAmountOut - wstethToReturn);
 
         // Burn OHM
         ohm.increaseAllowance(MINTR(), ohmAmountOut);
         manager.burnOhmFromVault(ohmAmountOut);
 
         // Return wstETH to owner
-        wsteth.transfer(msg.sender, wstethToReturn);
+        wsteth.safeTransfer(msg.sender, wstethToReturn);
 
         // Return rewards to owner
         _sendRewards();
@@ -398,10 +398,10 @@ contract BLVaultLido is IBLVaultLido, Clone {
             uint256 balRewards = bal().balanceOf(address(this));
             uint256 balFee = (balRewards * fee()) / 10_000;
             if (balRewards - balFee > 0) {
-                bal().transfer(owner(), balRewards - balFee);
+                bal().safeTransfer(owner(), balRewards - balFee);
                 emit RewardsClaimed(address(bal()), balRewards - balFee);
             }
-            if (balFee > 0) bal().transfer(TRSRY(), balFee);
+            if (balFee > 0) bal().safeTransfer(TRSRY(), balFee);
         }
 
         // Send Aura rewards to owner
@@ -409,10 +409,10 @@ contract BLVaultLido is IBLVaultLido, Clone {
             uint256 auraRewards = aura().balanceOf(address(this));
             uint256 auraFee = (auraRewards * fee()) / 10_000;
             if (auraRewards - auraFee > 0) {
-                aura().transfer(owner(), auraRewards - auraFee);
+                aura().safeTransfer(owner(), auraRewards - auraFee);
                 emit RewardsClaimed(address(aura()), auraRewards - auraFee);
             }
-            if (auraFee > 0) aura().transfer(TRSRY(), auraFee);
+            if (auraFee > 0) aura().safeTransfer(TRSRY(), auraFee);
         }
 
         // Send extra rewards to owner
@@ -425,13 +425,13 @@ contract BLVaultLido is IBLVaultLido, Clone {
                 uint256 extraRewardAmount = extraRewardToken.balanceOf(address(this));
                 uint256 extraRewardFee = (extraRewardAmount * fee()) / 10_000;
                 if (extraRewardAmount - extraRewardFee > 0) {
-                    extraRewardToken.transfer(owner(), extraRewardAmount - extraRewardFee);
+                    extraRewardToken.safeTransfer(owner(), extraRewardAmount - extraRewardFee);
                     emit RewardsClaimed(
                         address(extraRewardToken),
                         extraRewardAmount - extraRewardFee
                     );
                 }
-                if (extraRewardFee > 0) extraRewardToken.transfer(TRSRY(), extraRewardFee);
+                if (extraRewardFee > 0) extraRewardToken.safeTransfer(TRSRY(), extraRewardFee);
 
                 unchecked {
                     ++i;
