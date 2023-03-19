@@ -22,11 +22,13 @@ interface IBLVaultLido {
     /// @dev                    Can only be called by the owner of the vault
     /// @param lpAmount_        The amount of LP tokens to withdraw from Balancer
     /// @param minTokenAmounts_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer
+    /// @param claim_           Whether to claim outstanding rewards from Aura
     /// @return uint256         The amount of OHM received
     /// @return uint256         The amount of wstETH received
     function withdraw(
         uint256 lpAmount_,
-        uint256[] calldata minTokenAmounts_
+        uint256[] calldata minTokenAmounts_,
+        bool claim_
     ) external returns (uint256, uint256);
 
     //============================================================================================//

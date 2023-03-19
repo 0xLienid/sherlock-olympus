@@ -197,7 +197,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
     /// @inheritdoc IBLVaultLido
     function withdraw(
         uint256 lpAmount_,
-        uint256[] calldata minTokenAmounts_
+        uint256[] calldata minTokenAmounts_,
+        bool claim_
     ) external override onlyWhileActive onlyOwner nonReentrant returns (uint256, uint256) {
         // Cache variables into memory
         OlympusERC20Token ohm = ohm();
@@ -212,7 +213,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         manager.decreaseTotalLp(lpAmount_);
 
         // Unstake from Aura
-        auraRewardPool().withdrawAndUnwrap(lpAmount_, true);
+        auraRewardPool().withdrawAndUnwrap(lpAmount_, claim_);
 
         // Exit Balancer pool
         _exitBalancerPool(lpAmount_, minTokenAmounts_);
@@ -241,7 +242,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         wsteth.safeTransfer(msg.sender, wstethToReturn);
 
         // Return rewards to owner
-        _sendRewards();
+        if (claim_) _sendRewards();
 
         // Emit event
         emit Withdraw(ohmAmountOut, wstethToReturn);

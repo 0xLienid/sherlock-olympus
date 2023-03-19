@@ -81,7 +81,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     bool public isLidoBLVaultActive;
 
     // Constants
-    uint32 public constant MAX_FEE = 10000; // 100%
+    uint32 public constant MAX_FEE = 10_000; // 100%
 
     //============================================================================================//
     //                                      POLICY SETUP                                          //
@@ -283,11 +283,13 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     /// @inheritdoc IBLVaultManagerLido
     function getLpBalance(address user_) external view override returns (uint256) {
+        if (address(userVaults[user_]) == address(0)) return 0;
         return userVaults[user_].getLpBalance();
     }
 
     /// @inheritdoc IBLVaultManagerLido
     function getUserPairShare(address user_) external view override returns (uint256) {
+        if (address(userVaults[user_]) == address(0)) return 0;
         return userVaults[user_].getUserPairShare();
     }
 
@@ -297,6 +299,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     ) external view override returns (RewardsData[] memory) {
         // Get user's vault address
         BLVaultLido vault = userVaults[user_];
+        if (address(vault) == address(0)) return new RewardsData[](0);
 
         RewardsData[] memory rewards = vault.getOutstandingRewards();
         return rewards;

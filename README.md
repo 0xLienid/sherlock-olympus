@@ -63,6 +63,9 @@ src
 |   |   |   ├─ IBalancer.sol
 |   |   |   ├─ ILido.sol
 ├─ modules
+|   ├─ BLREG
+|   |   ├─ BLREG.v1.sol
+|   |   ├─ OlympusBoostedLiquidityRegistry.sol
 |   ├─ MINTR
 |   |   ├─ MINTR.v1.sol
 |   |   ├─ OlympusMinter.sol
@@ -107,6 +110,10 @@ This project aims to build the capability and framework for the Olympus Treasury
 
 The BLV system is built using one central manager contracts and then a series of individual vaults per user. These individual vaults are deployed using the clones with immutable args architecture. This has the benefit of sequestering user assets and rewards, thus offloading the responsibility of managing their distribution to external protocols like Aura, all while remaining quite gas efficient. As a quick primer of clones with immutable args, they work by having one base implementation deployment which houses all the logic. When a clone is created, the immutable arguments (used as state) are stored directly in the bytecode of the deployment. Function calls are handled via `delegatecall` back to the logic housed in the base implementation contract.
 
+### Diagram of Main User Flows
+
+![user flows diagram](documentation/BLVProcesses.png)
+
 ### Boosted Liquidity Vault Security Considerations
 
 ### General
@@ -134,3 +141,4 @@ The BLV system is built using one central manager contracts and then a series of
 - BLVs should dampen OHM volatility relative to the counter-asset. As OHM price increases relative to the counter-asset, OHM that was minted into the vault is released into circulation outside the control and purview of the protocol. This increases circulating supply and holding all else equal should push the OHM price back down. As OHM price decreases relative to the counter-asset, OHM that was previously circulating has now entered the liquidity pool where the protocol has a claim on the OHM side of the pool. This decreases circulating supply and holding all else equal should push the OHM price back up.
 - BLVs should behave as more efficient liquidity mining vehicles for partners. Initially Olympus will take no portion of the rewards provided by the partner protocol (and down the road will not take more than a small percentage). Thus the partner gets 2x TVL for its rewards relative to what it would get in a traditional liquidity mining system. Similarly, the depositor gets 2x rewards relative to what they would get in a traditional liquidity mining system. The depositor effectively receives 2x leverage on reward accumulation without 2x exposure to the underlying (and thus has no liquidation risk).
 - Users of BLVs will experience identical impermanent loss (in dollar terms) as if they had split their pair token deposit into 50% OHM - 50% pair token and LP'd.
+- In theory this system could be gamed by single-sided depositing through the vault, performing a large swap (either via user balance, a large loan, or a flash loan) to shift more of the LP into wstETH, then exiting the pool. To mitigate this the contract checks the withdrawn ratios of OHM and wstETH against the current oracle price and takes any wstETH shifted imbalance as a fee to the treasury. The math used to accomplish this slightly weights the exchange rate further in favor of the treasury rather than reverse engineering the invariant math to get an exact exchange rate since in most scenarios these discrepancies will be very small and it's more effective at dissuading large attempts to shift the pool around. It also does this without actually rebalancing the pool.
