@@ -29,6 +29,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_OnlyOwner();
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
+    error BLVaultLido_AuraDepositFailed();
 
     // ========= EVENTS ========= //
 
@@ -155,25 +156,29 @@ contract BLVaultLido is IBLVaultLido, Clone {
         uint256 ohmWstethPrice = manager.getOhmTknPrice();
         uint256 ohmMintAmount = (amount_ * ohmWstethPrice) / _WSTETH_DECIMALS;
 
-        // Cache OHM-wstETH BPT before
-        uint256 bptBefore = liquidityPool.balanceOf(address(this));
+        // Block scope to avoid stack too deep
+        {
+            // Cache OHM-wstETH BPT before
+            uint256 bptBefore = liquidityPool.balanceOf(address(this));
 
-        // Transfer in wstETH
-        wsteth.safeTransferFrom(msg.sender, address(this), amount_);
+            // Transfer in wstETH
+            wsteth.safeTransferFrom(msg.sender, address(this), amount_);
 
-        // Mint OHM
-        manager.mintOhmToVault(ohmMintAmount);
+            // Mint OHM
+            manager.mintOhmToVault(ohmMintAmount);
 
-        // Join Balancer pool
-        _joinBalancerPool(ohmMintAmount, amount_, minLpAmount_);
+            // Join Balancer pool
+            _joinBalancerPool(ohmMintAmount, amount_, minLpAmount_);
 
-        // OHM-PAIR BPT after
-        lpAmountOut = liquidityPool.balanceOf(address(this)) - bptBefore;
-        manager.increaseTotalLp(lpAmountOut);
+            // OHM-PAIR BPT after
+            lpAmountOut = liquidityPool.balanceOf(address(this)) - bptBefore;
+            manager.increaseTotalLp(lpAmountOut);
 
-        // Stake into Aura
-        liquidityPool.approve(address(auraBooster), lpAmountOut);
-        auraBooster.deposit(pid(), lpAmountOut, true);
+            // Stake into Aura
+            liquidityPool.approve(address(auraBooster), lpAmountOut);
+            bool depositSuccess = auraBooster.deposit(pid(), lpAmountOut, true);
+            if (!depositSuccess) revert BLVaultLido_AuraDepositFailed();
+        }
 
         // Return unused tokens
         uint256 unusedOhm = ohm.balanceOf(address(this));

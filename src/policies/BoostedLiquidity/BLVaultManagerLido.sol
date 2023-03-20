@@ -27,6 +27,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     // ========= ERRORS ========= //
 
+    error BLManagerLido_AlreadyActive();
+    error BLManagerLido_AlreadyInactive();
     error BLManagerLido_Inactive();
     error BLManagerLido_InvalidVault();
     error BLManagerLido_LimitViolation();
@@ -307,7 +309,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     /// @inheritdoc IBLVaultManagerLido
     function getMaxDeposit() external view override returns (uint256) {
-        uint256 maxOhmAmount = ohmLimit - deployedOhm;
+        uint256 maxOhmAmount = ohmLimit + circulatingOhmBurned - deployedOhm;
 
         // Convert max OHM mintable amount to pair token amount
         uint256 ohmTknPrice = getOhmTknPrice();
@@ -497,12 +499,16 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     /// @inheritdoc IBLVaultManagerLido
     function activate() external override onlyRole("liquidityvault_admin") {
+        if (isLidoBLVaultActive) revert BLManagerLido_AlreadyActive();
+
         isLidoBLVaultActive = true;
         BLREG.addVault(address(this));
     }
 
     /// @inheritdoc IBLVaultManagerLido
     function deactivate() external override onlyRole("liquidityvault_admin") {
+        if (!isLidoBLVaultActive) revert BLManagerLido_AlreadyInactive();
+
         isLidoBLVaultActive = false;
         BLREG.removeVault(address(this));
     }

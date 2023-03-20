@@ -7,7 +7,7 @@ interface IAuraBooster {
         uint256 pid_,
         uint256 amount_,
         bool stake_
-    ) external;
+    ) external returns (bool);
 }
 
 // Define Base Reward Pool interface
