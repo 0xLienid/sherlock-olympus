@@ -30,6 +30,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
+    error BLVaultLido_InvalidWithdrawal();
 
     // ========= EVENTS ========= //
 
@@ -38,6 +39,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
     event RewardsClaimed(address indexed rewardsToken, uint256 amount);
 
     // ========= STATE VARIABLES ========= //
+
+    /// @notice The amount of LP tokens this vault actively holds
+    uint256 public lpBalance;
 
     uint256 private constant _OHM_DECIMALS = 1e9;
     uint256 private constant _WSTETH_DECIMALS = 1e18;
@@ -172,6 +176,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
 
             // OHM-PAIR BPT after
             lpAmountOut = liquidityPool.balanceOf(address(this)) - bptBefore;
+            lpBalance += lpAmountOut;
             manager.increaseTotalLp(lpAmountOut);
 
             // Stake into Aura
@@ -209,6 +214,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
         OlympusERC20Token ohm = ohm();
         ERC20 wsteth = wsteth();
         IBLVaultManagerLido manager = manager();
+
+        // Check if LP amount is valid
+        if (lpAmount_ > lpBalance) revert BLVaultLido_InvalidWithdrawal();
 
         // Cache OHM and wstETH balances before
         uint256 ohmBefore = ohm.balanceOf(address(this));
