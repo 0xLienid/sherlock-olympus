@@ -27,6 +27,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
 
     error BLVaultLido_AlreadyInitialized();
     error BLVaultLido_OnlyOwner();
+    error BLVaultLido_OnlyManager();
+    error BLVaultLido_Active();
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
@@ -120,8 +122,18 @@ contract BLVaultLido is IBLVaultLido, Clone {
         _;
     }
 
+    modifier onlyManager() {
+        if (msg.sender != address(manager())) revert BLVaultLido_OnlyManager();
+        _;
+    }
+
     modifier onlyWhileActive() {
         if (!manager().isLidoBLVaultActive()) revert BLVaultLido_Inactive();
+        _;
+    }
+
+    modifier onlyWhileInactive() {
+        if (manager().isLidoBLVaultActive()) revert BLVaultLido_Active();
         _;
     }
 
@@ -204,7 +216,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         uint256 lpAmount_,
         uint256[] calldata minTokenAmounts_,
         bool claim_
-    ) external override onlyWhileActive onlyOwner nonReentrant returns (uint256, uint256) {
+    ) external override onlyOwner nonReentrant returns (uint256, uint256) {
         // Cache variables into memory
         OlympusERC20Token ohm = ohm();
         ERC20 wsteth = wsteth();
@@ -253,6 +265,32 @@ contract BLVaultLido is IBLVaultLido, Clone {
         emit Withdraw(ohmAmountOut, wstethToReturn);
 
         return (ohmAmountOut, wstethToReturn);
+    }
+
+    /// @inheritdoc IBLVaultLido
+    function emergencyWithdraw(uint256 lpAmount_, uint256[] calldata minTokenAmounts_) external override onlyWhileInactive onlyOwner nonReentrant returns (uint256, uint256) {
+        // Cache variables into memory
+        OlympusERC20Token ohm = ohm();
+        ERC20 wsteth = wsteth();
+        
+        // Cache OHM and wstETH balances before
+        uint256 ohmBefore = ohm.balanceOf(address(this));
+        uint256 wstethBefore = wsteth.balanceOf(address(this));
+
+        // Unstake from Aura
+        auraRewardPool().withdrawAndUnwrap(lpAmount_, false);
+
+        // Exit Balancer pool
+        _exitBalancerPool(lpAmount_, minTokenAmounts_);
+
+        // Calculate OHM and wstETH amounts received
+        uint256 ohmAmountOut = ohm.balanceOf(address(this)) - ohmBefore;
+        uint256 wstethAmountOut = wsteth.balanceOf(address(this)) - wstethBefore;
+
+        // Transfer wstETH to owner
+        wsteth.safeTransfer(msg.sender, wstethAmountOut);
+
+        return (ohmAmountOut, wstethAmountOut);
     }
 
     //============================================================================================//
@@ -331,6 +369,17 @@ contract BLVaultLido is IBLVaultLido, Clone {
         }
 
         return rewards;
+    }
+
+    //============================================================================================//
+    //                                       ADMIN FUNCTIONS                                      //
+    //============================================================================================//
+
+    /// @inheritdoc IBLVaultLido
+    function burnOhm(uint256 amount_) external override onlyManager {
+        // Burn OHM
+        ohm().increaseAllowance(MINTR(), amount_);
+        manager().burnOhmFromVault(amount_);
     }
 
     //============================================================================================//

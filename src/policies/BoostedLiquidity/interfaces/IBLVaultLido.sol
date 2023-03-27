@@ -18,7 +18,7 @@ interface IBLVaultLido {
     /// @return lpAmountOut     The amount of LP tokens received by the transaction
     function deposit(uint256 amount_, uint256 minLpAmount_) external returns (uint256 lpAmountOut);
 
-    /// @notice                 Withdraws LP tokens from Balancer, burns the OHM side, and returns the wstETH side to the user
+    /// @notice                 Withdraws LP tokens from Aura and Balancer, burns the OHM side, and returns the wstETH side to the user
     /// @dev                    Can only be called by the owner of the vault
     /// @param lpAmount_        The amount of LP tokens to withdraw from Balancer
     /// @param minTokenAmounts_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer
@@ -30,6 +30,16 @@ interface IBLVaultLido {
         uint256[] calldata minTokenAmounts_,
         bool claim_
     ) external returns (uint256, uint256);
+
+    /// @notice                 Withdraws LP tokens from Aura and Balancer, returns the wstETH to the user
+    /// @dev                    Can only be called by the owner of the vault. Can only be called when the vault is paused
+    /// @param lpAmount_        The amount of LP tokens to withdraw from Balancer
+    /// @param minTokenAmounts_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer
+    /// @return uint256         The amount of OHM received
+    /// @return uint256         The amount of wstETH received
+    function emergencyWithdraw(uint256 lpAmount_, uint256[] calldata minTokenAmounts_)
+        external
+        returns (uint256, uint256);
 
     //============================================================================================//
     //                                       REWARDS FUNCTIONS                                    //
@@ -51,7 +61,16 @@ interface IBLVaultLido {
     /// @return uint256         Claim on wstETH
     function getUserPairShare() external view returns (uint256);
 
-    /// @notice                         Returns the vault's unclaimed rewards in Aura
-    /// @return RewardsData[]           The vault's unclaimed rewards in Aura
+    /// @notice                 Returns the vault's unclaimed rewards in Aura
+    /// @return RewardsData[]   The vault's unclaimed rewards in Aura
     function getOutstandingRewards() external view returns (RewardsData[] memory);
+
+    //============================================================================================//
+    //                                        ADMIN FUNCTIONS                                     //
+    //============================================================================================//
+
+    /// @notice                 Burns any OHM in the vault
+    /// @dev                    Can only be called by the vault manager in case of emergency
+    /// @param amount_          The amount of OHM to burn
+    function burnOhm(uint256 amount_) external;
 }

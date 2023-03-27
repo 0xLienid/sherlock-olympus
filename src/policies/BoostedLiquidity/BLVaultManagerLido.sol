@@ -37,6 +37,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     error BLManagerLido_InvalidFee();
     error BLManagerLido_BadPriceFeed();
     error BLManagerLido_VaultAlreadyExists();
+    error BLManagerLido_NoUserVault();
 
     // ========= EVENTS ========= //
 
@@ -476,6 +477,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     //                                        ADMIN FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @inheritdoc IBLVaultManagerLido
+    function emergencyBurnOhm(address user_, uint256 amount_) external override onlyRole("liquidityvault_admin") {
+        if (address(userVaults[user_]) == address(0)) revert BLManagerLido_NoUserVault();
+        userVaults[user_].burnOhm(amount_);
+    }
+    
     /// @inheritdoc IBLVaultManagerLido
     function setLimit(uint256 newLimit_) external override onlyRole("liquidityvault_admin") {
         if (newLimit_ < deployedOhm) revert BLManagerLido_InvalidLimit();
