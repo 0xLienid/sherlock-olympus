@@ -478,7 +478,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     /// @inheritdoc IBLVaultManagerLido
     function setLimit(uint256 newLimit_) external override onlyRole("liquidityvault_admin") {
-        if (newLimit_ < deployedOhm) revert BLManagerLido_InvalidLimit();
+        if (newLimit_ + circulatingOhmBurned < deployedOhm) revert BLManagerLido_InvalidLimit();
         ohmLimit = newLimit_;
     }
 
