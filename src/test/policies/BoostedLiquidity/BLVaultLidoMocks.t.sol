@@ -194,7 +194,8 @@ contract BLVaultLidoTest is Test {
                 stethEthPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
-                0
+                0,
+                1 days
             );
             rolesAdmin = new RolesAdmin(kernel);
         }
@@ -333,6 +334,9 @@ contract BLVaultLidoTest is Test {
         // Deposit wstETH
         vm.prank(alice);
         aliceVault.deposit(100e18, 0);
+
+        // Wait 1 day to pass the cooldown period
+        vm.warp(block.timestamp + 1 days);
     }
 
     function testCorrectness_withdrawCanOnlyBeCalledWhenManagerIsActive() public {

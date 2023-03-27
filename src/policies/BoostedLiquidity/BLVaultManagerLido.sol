@@ -80,6 +80,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     // System Configuration
     uint256 public ohmLimit;
     uint64 public currentFee;
+    uint48 public minWithdrawalDelay;
     bool public isLidoBLVaultActive;
 
     // Constants
@@ -99,7 +100,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         OracleFeed memory stethEthPriceFeed_,
         address implementation_,
         uint256 ohmLimit_,
-        uint64 fee_
+        uint64 fee_,
+        uint48 minWithdrawalDelay_
     ) Policy(kernel_) {
         // Set exchange name
         {
@@ -140,6 +142,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         {
             ohmLimit = ohmLimit_;
             currentFee = fee_;
+            minWithdrawalDelay = minWithdrawalDelay_;
         }
     }
 
@@ -486,6 +489,11 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     function setFee(uint64 newFee_) external override onlyRole("liquidityvault_admin") {
         if (newFee_ > MAX_FEE) revert BLManagerLido_InvalidFee();
         currentFee = newFee_;
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
+    function setWithdrawalDelay(uint48 newDelay_) external override onlyRole("liquidityvault_admin") {
+        minWithdrawalDelay = newDelay_;
     }
 
     /// @inheritdoc IBLVaultManagerLido
