@@ -283,6 +283,11 @@ contract BLVaultLido is IBLVaultLido, Clone {
     //============================================================================================//
 
     /// @inheritdoc IBLVaultLido
+    function canWithdraw() external view override returns (bool) {
+        return block.timestamp - lastDeposit >= manager().minWithdrawalDelay();
+    }
+    
+    /// @inheritdoc IBLVaultLido
     function getLpBalance() public view override returns (uint256) {
         return auraRewardPool().balanceOf(address(this));
     }

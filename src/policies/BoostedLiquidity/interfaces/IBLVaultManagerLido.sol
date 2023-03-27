@@ -88,6 +88,11 @@ interface IBLVaultManagerLido {
     //                                         VIEW FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @notice                        Returns whether enough time has passed since the last deposit for the user to be ale to withdraw
+    /// @param user_                   The user to check the vault of
+    /// @return bool                   Whether enough time has passed since the last deposit for the user to be ale to withdraw
+    function canWithdraw(address user_) external view returns (bool);
+    
     /// @notice                         Returns the user's vault's LP balance
     /// @param user_                    The user to check the vault of
     /// @return uint256                 The user's vault's LP balance

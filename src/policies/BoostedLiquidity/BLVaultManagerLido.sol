@@ -287,6 +287,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     //============================================================================================//
 
     /// @inheritdoc IBLVaultManagerLido
+    function canWithdraw(address user_) external view override returns (bool) {
+        if (address(userVaults[user_]) == address(0)) return false;
+        return userVaults[user_].canWithdraw();
+    }
+    
+    /// @inheritdoc IBLVaultManagerLido
     function getLpBalance(address user_) external view override returns (uint256) {
         if (address(userVaults[user_]) == address(0)) return 0;
         return userVaults[user_].getLpBalance();
