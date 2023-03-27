@@ -65,7 +65,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     // Oracle Info
     OracleFeed public ohmEthPriceFeed;
-    OracleFeed public stethEthPriceFeed;
+    OracleFeed public ethUsdPriceFeed;
+    OracleFeed public stethUsdPriceFeed;
 
     // Vault Info
     BLVaultLido public implementation;
@@ -96,7 +97,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         AuraData memory auraData_,
         address auraMiningLib_,
         OracleFeed memory ohmEthPriceFeed_,
-        OracleFeed memory stethEthPriceFeed_,
+        OracleFeed memory ethUsdPriceFeed_,
+        OracleFeed memory stethUsdPriceFeed_,
         address implementation_,
         uint256 ohmLimit_,
         uint64 fee_
@@ -128,7 +130,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         // Set oracle info
         {
             ohmEthPriceFeed = ohmEthPriceFeed_;
-            stethEthPriceFeed = stethEthPriceFeed_;
+            ethUsdPriceFeed = ethUsdPriceFeed_;
+            stethUsdPriceFeed = stethUsdPriceFeed_;
         }
 
         // Set vault implementation
@@ -444,14 +447,20 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         // Get ETH per OHM (18 Decimals)
         uint256 ethPerOhm = _validatePrice(ohmEthPriceFeed.feed, ohmEthPriceFeed.updateThreshold);
 
-        // Get stETH per ETH (18 Decimals)
-        uint256 stethPerEth = _validatePrice(
-            stethEthPriceFeed.feed,
-            stethEthPriceFeed.updateThreshold
+        // Get USD per ETH (8 decimals)
+        uint256 usdPerEth = _validatePrice(
+            ethUsdPriceFeed.feed,
+            ethUsdPriceFeed.updateThreshold
+        );
+
+        // Get USD per stETH (8 decimals)
+        uint256 usdPerSteth = _validatePrice(
+            stethUsdPriceFeed.feed,
+            stethUsdPriceFeed.updateThreshold
         );
 
         // Calculate OHM per wstETH (9 decimals)
-        return (stethPerWsteth * stethPerEth) / (ethPerOhm * 1e9);
+        return (stethPerWsteth * usdPerSteth * 1e9) / (ethPerOhm * usdPerEth);
     }
 
     /// @inheritdoc IBLVaultManagerLido
@@ -462,14 +471,20 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         // Get ETH per OHM (18 Decimals)
         uint256 ethPerOhm = _validatePrice(ohmEthPriceFeed.feed, ohmEthPriceFeed.updateThreshold);
 
-        // Get stETH per ETH (18 Decimals)
-        uint256 stethPerEth = _validatePrice(
-            stethEthPriceFeed.feed,
-            stethEthPriceFeed.updateThreshold
+        // Get USD per ETH (8 decimals)
+        uint256 usdPerEth = _validatePrice(
+            ethUsdPriceFeed.feed,
+            ethUsdPriceFeed.updateThreshold
+        );
+
+        // Get USD per stETH (8 decimals)
+        uint256 usdPerSteth = _validatePrice(
+            stethUsdPriceFeed.feed,
+            stethUsdPriceFeed.updateThreshold
         );
 
         // Calculate wstETH per OHM (18 decimals)
-        return (ethPerOhm * 1e36) / (stethPerWsteth * stethPerEth);
+        return (ethPerOhm * usdPerEth * 1e18) / (stethPerWsteth * usdPerSteth);
     }
 
     //============================================================================================//
@@ -491,10 +506,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     /// @inheritdoc IBLVaultManagerLido
     function changeUpdateThresholds(
         uint48 ohmEthUpdateThreshold_,
-        uint48 stethEthUpdateThreshold_
+        uint48 ethUsdUpdateThreshold_,
+        uint48 stethUsdUpdateThreshold_
     ) external onlyRole("liquidityvault_admin") {
         ohmEthPriceFeed.updateThreshold = ohmEthUpdateThreshold_;
-        stethEthPriceFeed.updateThreshold = stethEthUpdateThreshold_;
+        ethUsdPriceFeed.updateThreshold = ethUsdUpdateThreshold_;
+        stethUsdPriceFeed.updateThreshold = stethUsdUpdateThreshold_;
     }
 
     /// @inheritdoc IBLVaultManagerLido
