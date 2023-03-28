@@ -294,8 +294,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         // Check pool against oracle price
         // getTknOhmPrice returns the amount of wstETH per 1 OHM based on the oracle price
         uint256 wstethOhmPrice = manager().getTknOhmPrice();
-        uint256 userOhmShare = (userLpBalance * balances[0]) / liquidityPool().totalSupply();
-        uint256 expectedWstethShare = (userOhmShare * wstethOhmPrice) / _OHM_DECIMALS;
+        uint256 expectedWstethShare = (userLpBalance * balances[0] * wstethOhmPrice) / (liquidityPool().totalSupply() * _OHM_DECIMALS);
 
         return userWstethShare > expectedWstethShare ? expectedWstethShare : userWstethShare;
     }
