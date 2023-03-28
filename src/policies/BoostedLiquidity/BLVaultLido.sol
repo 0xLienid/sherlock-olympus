@@ -30,6 +30,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
+    error BLVaultLido_AuraWithdrawalFailed();
 
     // ========= EVENTS ========= //
 
@@ -218,7 +219,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
         manager.decreaseTotalLp(lpAmount_);
 
         // Unstake from Aura
-        auraRewardPool().withdrawAndUnwrap(lpAmount_, claim_);
+        bool withdrawalSuccess = auraRewardPool().withdrawAndUnwrap(lpAmount_, claim_);
+        if (!withdrawalSuccess) revert BLVaultLido_AuraWithdrawalFailed();
 
         // Exit Balancer pool
         _exitBalancerPool(lpAmount_, minTokenAmounts_);

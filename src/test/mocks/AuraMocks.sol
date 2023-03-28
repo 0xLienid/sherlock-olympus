@@ -52,9 +52,11 @@ contract MockAuraRewardPool is IAuraRewardPool {
         MockERC20(rewardToken).mint(account_, 1e18);
     }
 
-    function withdrawAndUnwrap(uint256 amount_, bool claim_) external {
+    function withdrawAndUnwrap(uint256 amount_, bool claim_) external returns (bool) {
         MockERC20(depositToken).transfer(msg.sender, amount_);
         if (claim_) getReward(msg.sender, true);
+
+        return true;
     }
 
     function earned(address account_) external view returns (uint256) {
