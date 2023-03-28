@@ -290,6 +290,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
         // Transfer wstETH to owner
         wsteth.safeTransfer(msg.sender, wstethAmountOut);
 
+        // Transfer OHM to manager
+        ohm.transfer(address(manager()), ohmAmountOut);
+
         return (ohmAmountOut, wstethAmountOut);
     }
 
@@ -369,17 +372,6 @@ contract BLVaultLido is IBLVaultLido, Clone {
         }
 
         return rewards;
-    }
-
-    //============================================================================================//
-    //                                       ADMIN FUNCTIONS                                      //
-    //============================================================================================//
-
-    /// @inheritdoc IBLVaultLido
-    function burnOhm(uint256 amount_) external override onlyManager {
-        // Burn OHM
-        ohm().increaseAllowance(MINTR(), amount_);
-        manager().burnOhmFromVault(amount_);
     }
 
     //============================================================================================//

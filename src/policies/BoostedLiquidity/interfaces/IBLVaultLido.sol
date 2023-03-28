@@ -64,13 +64,4 @@ interface IBLVaultLido {
     /// @notice                 Returns the vault's unclaimed rewards in Aura
     /// @return RewardsData[]   The vault's unclaimed rewards in Aura
     function getOutstandingRewards() external view returns (RewardsData[] memory);
-
-    //============================================================================================//
-    //                                        ADMIN FUNCTIONS                                     //
-    //============================================================================================//
-
-    /// @notice                 Burns any OHM in the vault
-    /// @dev                    Can only be called by the vault manager in case of emergency
-    /// @param amount_          The amount of OHM to burn
-    function burnOhm(uint256 amount_) external;
 }
