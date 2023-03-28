@@ -472,6 +472,19 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         return (ethPerOhm * 1e36) / (stethPerWsteth * stethPerEth);
     }
 
+    /// @inheritdoc IBLVaultManagerLido
+    function getOhmTknPoolPrice() public view override returns (uint256) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IVault vault = IVault(balancerData.vault);
+
+        // Get token balances
+        (, uint256[] memory balances, ) = vault.getPoolTokens(pool.getPoolId());
+
+        // Get OHM per wstETH (9 decimals)
+        if (balances[1] == 0) return 0;
+        else return (balances[0] * 1e18) / balances[1];
+    }
+
     //============================================================================================//
     //                                        ADMIN FUNCTIONS                                     //
     //============================================================================================//
