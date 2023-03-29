@@ -105,6 +105,16 @@ interface IBLVaultManagerLido {
     /// @return uint256                 The amount of LP tokens that will be generated
     function getExpectedLpAmount(uint256 amount_) external returns (uint256);
 
+    /// @notice                         Calculates the amount of OHM and pair tokens that should be received by the vault for withdrawing a given amount of LP tokens
+    /// @param lpAmount_                The amount of LP tokens to calculate the OHM and pair tokens for
+    /// @return expectedTokenAmounts    The amount of OHM and pair tokens that should be received
+    function getExpectedTokensOutProtocol(uint256 lpAmount_) external returns (uint256[] memory expectedTokenAmounts);
+
+    /// @notice                         Calculates the amount of pair tokens that should be received by the user for withdrawing a given amount of LP tokens after the treasury takes any arbs
+    /// @param lpAmount_                The amount of LP tokens to calculate the pair tokens for
+    /// @return expectedTknAmount       The amount of pair tokens that should be received
+    function getExpectedPairTokenOutUser(uint256 lpAmount_) external returns (uint256 expectedTknAmount);
+
     /// @notice                         Gets all the reward tokens from the Aura pool
     /// @return address[]               The addresses of the reward tokens
     function getRewardTokens() external view returns (address[] memory);

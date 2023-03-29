@@ -344,7 +344,7 @@ contract BLVaultLidoTest is Test {
 
         // Try to withdraw
         vm.prank(alice);
-        aliceVault.withdraw(1e18, minAmountsOut, true);
+        aliceVault.withdraw(1e18, minAmountsOut, 0, true);
     }
 
     function testCorrectness_withdrawCanOnlyBeCalledByTheVaultOwner(address attacker_) public {
@@ -352,14 +352,14 @@ contract BLVaultLidoTest is Test {
 
         if (attacker_ == alice) {
             vm.prank(alice);
-            aliceVault.withdraw(1e18, minAmountsOut, true);
+            aliceVault.withdraw(1e18, minAmountsOut, 0, true);
         } else {
             bytes memory err = abi.encodeWithSignature("BLVaultLido_OnlyOwner()");
             vm.expectRevert();
 
             // Try to withdraw
             vm.prank(attacker_);
-            aliceVault.withdraw(1e18, minAmountsOut, true);
+            aliceVault.withdraw(1e18, minAmountsOut, 0, true);
         }
     }
 
@@ -376,7 +376,7 @@ contract BLVaultLidoTest is Test {
 
         // Withdraw
         vm.prank(alice);
-        aliceVault.withdraw(withdrawAmount_, minAmountsOut, true);
+        aliceVault.withdraw(withdrawAmount_, minAmountsOut, 0, true);
 
         // Check state after
         assertTrue(vaultManager.deployedOhm() < 10_000e9);
@@ -396,7 +396,7 @@ contract BLVaultLidoTest is Test {
 
         // Withdraw
         vm.prank(alice);
-        aliceVault.withdraw(aliceLpBalance, minAmountsOut, true);
+        aliceVault.withdraw(aliceLpBalance, minAmountsOut, 0, true);
 
         // Check state after
         assertEq(ohm.balanceOf(address(vault)), 0);
