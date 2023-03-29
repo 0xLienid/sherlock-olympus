@@ -326,7 +326,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
 
         // Calculate OHM amount to mint
-        uint256 ohmTknPrice = getOhmTknPrice();
+        uint256 ohmTknOraclePrice = getOhmTknPrice();
+        uint256 ohmTknPoolPrice = getOhmTknPoolPrice();
+
+        // If the expected oracle price mint amount is less than the expected pool price mint amount, use the oracle price
+        // otherwise use the pool price
+        uint256 ohmTknPrice = ohmTknOraclePrice < ohmTknPoolPrice ? ohmTknOraclePrice : ohmTknPoolPrice;
         uint256 ohmMintAmount = (amount_ * ohmTknPrice) / 1e18;
 
         // Build join pool request
