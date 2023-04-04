@@ -327,6 +327,7 @@ contract BLVaultLidoTest is Test {
     /// [X]  withdraw
     ///     [X]  can only be called when the manager is active
     ///     [X]  can only be called by the vault's owner
+    ///     [X]  fails if the cooldown period has not passed
     ///     [X]  correctly decreases state values (deployedOhm and totalLp)
     ///     [X]  correctly withdraws liquidity
 
@@ -344,6 +345,19 @@ contract BLVaultLidoTest is Test {
         vaultManager.deactivate();
 
         bytes memory err = abi.encodeWithSignature("BLVaultLido_Inactive()");
+        vm.expectRevert();
+
+        // Try to withdraw
+        vm.prank(alice);
+        aliceVault.withdraw(1e18, minAmountsOut, true);
+    }
+
+    function testCorrectness_withdrawFailsIfCooldownPeriodHasNotPassed() public {
+        // Deposit wstETH
+        vm.prank(alice);
+        aliceVault.deposit(100e18, 0);
+
+        bytes memory err = abi.encodeWithSignature("BLVaultLido_WithdrawalDelay()");
         vm.expectRevert();
 
         // Try to withdraw
