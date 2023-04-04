@@ -326,6 +326,7 @@ contract BLVaultLidoTest is Test {
     /// [X]  withdraw
     ///     [X]  can only be called when the manager is active
     ///     [X]  can only be called by the vault's owner
+    ///     [X]  fails if not enough wstETH will be sent
     ///     [X]  correctly decreases state values (deployedOhm and totalLp)
     ///     [X]  correctly withdraws liquidity
 
@@ -361,6 +362,20 @@ contract BLVaultLidoTest is Test {
             vm.prank(attacker_);
             aliceVault.withdraw(1e18, minAmountsOut, 0, true);
         }
+    }
+
+    function testCorrectness_withdrawFailsIfNotEnoughWstethWillBeSent() public {
+        _withdrawSetup();
+
+        // Set price to 0.001
+        ohmEthPriceFeed.setLatestAnswer(1e15);
+
+        bytes memory err = abi.encodeWithSignature("BLVaultLido_WithdrawFailedPriceImbalance()");
+        vm.expectRevert();
+
+        // Try to withdraw
+        vm.prank(alice);
+        aliceVault.withdraw(1e18, minAmountsOut, 90e18, true);
     }
 
     function testCorrectness_withdrawCorrectlyDecreasesState(uint256 withdrawAmount_) public {
