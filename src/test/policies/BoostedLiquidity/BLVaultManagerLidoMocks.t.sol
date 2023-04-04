@@ -11,7 +11,7 @@ import {MockLegacyAuthority} from "test/mocks/MockLegacyAuthority.sol";
 import {MockERC20, ERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockPriceFeed} from "test/mocks/MockPriceFeed.sol";
 import {MockVault, MockBalancerPool} from "test/mocks/BalancerMocks.sol";
-import {MockAuraBooster, MockAuraRewardPool} from "test/mocks/AuraMocks.sol";
+import {MockAuraBooster, MockAuraRewardPool, MockAuraMiningLib} from "test/mocks/AuraMocks.sol";
 
 import {OlympusERC20Token, IOlympusAuthority} from "src/external/OlympusERC20.sol";
 import {IAuraBooster, IAuraRewardPool} from "policies/BoostedLiquidity/interfaces/IAura.sol";
@@ -23,6 +23,8 @@ import {OlympusRoles, ROLESv1} from "modules/ROLES/OlympusRoles.sol";
 import {RolesAdmin} from "policies/RolesAdmin.sol";
 import {IBLVaultManagerLido, BLVaultManagerLido} from "policies/BoostedLiquidity/BLVaultManagerLido.sol";
 import {BLVaultLido} from "policies/BoostedLiquidity/BLVaultLido.sol";
+
+import {RewardsData} from "policies/BoostedLiquidity/interfaces/IBLVaultLido.sol";
 
 import "src/Kernel.sol";
 
@@ -69,6 +71,7 @@ contract BLVaultManagerLidoTest is Test {
 
     MockAuraBooster internal booster;
     MockAuraRewardPool internal auraPool;
+    MockAuraMiningLib internal auraMiningLib;
 
     IOlympusAuthority internal auth;
 
@@ -128,6 +131,7 @@ contract BLVaultManagerLidoTest is Test {
         {
             auraPool = new MockAuraRewardPool(address(vault.bpt()), address(bal));
             booster = new MockAuraBooster(address(vault.bpt()), address(auraPool));
+            auraMiningLib = new MockAuraMiningLib();
         }
 
         // Deploy kernel
@@ -183,7 +187,7 @@ contract BLVaultManagerLidoTest is Test {
                 tokenData,
                 balancerData,
                 auraData,
-                address(0),
+                address(auraMiningLib),
                 ohmEthPriceFeedData,
                 stethEthPriceFeedData,
                 address(vaultImplementation),
@@ -599,7 +603,7 @@ contract BLVaultManagerLidoTest is Test {
         vm.stopPrank();
 
         // Check state after
-        assertTrue(vaultManager.getLpBalance(alice) > 0);
+        assertEq(vaultManager.getLpBalance(alice), 1e18);
     }
 
     /// [X]  getUserPairShare
@@ -618,7 +622,28 @@ contract BLVaultManagerLidoTest is Test {
         vm.stopPrank();
 
         // Check state after
-        assertTrue(vaultManager.getUserPairShare(alice) > 0);
+        assertEq(vaultManager.getUserPairShare(alice), 1e18);
+    }
+
+    /// [X]  getOutstandingRewards
+    ///     [X]  returns correct outstanding rewards
+
+    function testCorrectness_getOutstandingRewards() public {
+        address aliceVault = _createVault();
+
+        // Deposit wstETH
+        vm.startPrank(alice);
+        wsteth.approve(aliceVault, type(uint256).max);
+        BLVaultLido(aliceVault).deposit(1e18, 0);
+        vm.stopPrank();
+
+        // Check state after
+        RewardsData[] memory rewards = vaultManager.getOutstandingRewards(alice);
+        assertEq(rewards.length, 2);
+        assertEq(rewards[0].rewardToken, address(bal));
+        assertEq(rewards[0].outstandingRewards, 1e18);
+        assertEq(rewards[1].rewardToken, address(aura));
+        assertEq(rewards[1].outstandingRewards, 1e18);
     }
 
     /// [X]  getMaxDeposit
@@ -658,22 +683,103 @@ contract BLVaultManagerLidoTest is Test {
         assertEq(rate, 1e18);
     }
 
+    /// [X]  getPoolOhmShare
+    ///     [X]  returns correct pool OHM share
+
+    function testCorrectness_getPoolOhmShare() public {
+        // Test base case
+        uint256 poolOhmShare = vaultManager.getPoolOhmShare();
+        assertEq(poolOhmShare, 0);
+
+        // Deposit
+        address validVault = _createVault();
+
+        vm.startPrank(alice);
+        wsteth.approve(validVault, type(uint256).max);
+        BLVaultLido(validVault).deposit(1e18, 0);
+        vm.stopPrank();
+
+        // Check state after
+        poolOhmShare = vaultManager.getPoolOhmShare();
+        assertEq(poolOhmShare, 100e9);
+    }
+
+    /// []  getOhmSupplyChangeData
+    ///     []  returns correct data
+
+    function testCorrectness_getOhmSupplyChangeData() public {
+        // Test base case
+        (uint256 poolOhmShare, uint256 ohmMinted, uint256 ohmBurned) = vaultManager.getOhmSupplyChangeData();
+        assertEq(poolOhmShare, 0);
+        assertEq(ohmMinted, 0);
+        assertEq(ohmBurned, 0);
+
+        // Test with minted OHM
+        address validVault = _createVault();
+
+        vm.prank(validVault);
+        vaultManager.mintOhmToVault(1e9);
+
+        (poolOhmShare, ohmMinted, ohmBurned) = vaultManager.getOhmSupplyChangeData();
+        assertEq(poolOhmShare, 0);
+        assertEq(ohmMinted, 1e9);
+        assertEq(ohmBurned, 0);
+
+        // Test with burned OHM
+        vm.startPrank(address(vaultManager));
+        minter.increaseMintApproval(address(vaultManager), 10e9);
+        minter.mintOhm(validVault, 10e9);
+        vm.stopPrank();
+
+        vm.startPrank(validVault);
+        ohm.increaseAllowance(address(minter), 11e9);
+        vaultManager.burnOhmFromVault(11e9);
+        vm.stopPrank();
+
+        (poolOhmShare, ohmMinted, ohmBurned) = vaultManager.getOhmSupplyChangeData();
+        assertEq(poolOhmShare, 0);
+        assertEq(ohmMinted, 0);
+        assertEq(ohmBurned, 10e9);
+    }
+
     /// [X]  getOhmTknPrice
     ///     [X]  returns correct OHM per wstETH (100)
 
     function testCorrectness_getOhmTknPrice() public {
+        // Test base case
         uint256 price = vaultManager.getOhmTknPrice();
-
         assertEq(price, 100e9);
+
+        // Increase OHM value
+        ohmEthPriceFeed.setLatestAnswer(1e17); // 0.1 ETH
+        price = vaultManager.getOhmTknPrice();
+        assertEq(price, 10e9);
+
+        // Reset OHM value and decrease stETH value
+        ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
+        stethEthPriceFeed.setLatestAnswer(9e17); // 0.9 ETH
+        price = vaultManager.getOhmTknPrice();
+        assertEq(price, 90e9);
     }
 
     /// [X]  getTknOhmPrice
     ///     [X]  returns correct wstETH per OHM (0.01)
 
     function testCorrectness_getTknOhmPrice() public {
+        // Test base case
         uint256 price = vaultManager.getTknOhmPrice();
-
         assertEq(price, 1e16);
+
+        // Increase OHM value
+        ohmEthPriceFeed.setLatestAnswer(1e17); // 0.1 ETH
+        price = vaultManager.getTknOhmPrice();
+        assertEq(price, 1e17);
+
+        // Reset OHM value and decrease stETH value
+        ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
+        stethEthPriceFeed.setLatestAnswer(5e17); // 0.9 ETH
+        price = vaultManager.getTknOhmPrice();
+        assertEq(price, 2e16);
     }
 
     //============================================================================================//
@@ -684,6 +790,7 @@ contract BLVaultManagerLidoTest is Test {
     ///     [X]  can only be called by liquidityvault_admin
     ///     [X]  cannot set the limit below the current deployedOhm value
     ///     [X]  correctly sets ohmLimit
+    ///     [X]  correctly takes into consideration burned OHM
 
     function testCorrectness_setLimitCanOnlyBeCalledByAdmin(address attacker_) public {
         vm.assume(attacker_ != address(this));
@@ -718,6 +825,30 @@ contract BLVaultManagerLidoTest is Test {
 
         // Check state after
         assertEq(vaultManager.ohmLimit(), limit_);
+    }
+
+    function testCorrectness_setLimitTakesBurnedOhmIntoConsideration() public {
+        address validVault = _createVault();
+
+        // Mint OHM
+        vm.startPrank(address(vaultManager));
+        minter.increaseMintApproval(address(vaultManager), 10_000e9);
+        minter.mintOhm(validVault, 10_000e9);
+        vm.stopPrank();
+
+        // Burn OHM
+        vm.startPrank(validVault);
+        ohm.increaseAllowance(address(minter), 10_000e9);
+        vaultManager.burnOhmFromVault(10_000e9);
+
+        // Mint additional OHM
+        vaultManager.mintOhmToVault(20_000e9);
+        vm.stopPrank();
+
+        // Attempt to set limit
+        bytes memory err = abi.encodeWithSignature("BLManagerLido_InvalidLimit()");
+        vm.expectRevert(err);
+        vaultManager.setLimit(1e9);
     }
 
     /// [X]  setFee
