@@ -427,10 +427,16 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         override
         returns (uint256 poolOhmShare, uint256 deployedOhm, uint256 circulatingOhmBurned)
     {
-        // Net emitted is the amount of OHM that was minted to the pool but is no longer in the
-        // pool beyond what has been burned in the past. Net removed is the amount of OHM that is
-        // in the pool but wasn’t minted there plus what has been burned in the past. Here we just return
-        // the data components to calculate that.
+        // Using the pool's OHM share, the amount of OHM deployed by this system, and the amount of
+        // OHM burned by this system we can calculate a whole host of useful data points. The most
+        // important is to calculate what amount of OHM should not be considered part of circulating
+        // supply which would be poolOhmShare. The rest of the data can be used to calculate whether
+        // the system has net emitted or net removed OHM from the circulating supply. Net emitted is
+        // the amount of OHM that was minted to the pool but is no longer in the pool beyond what has
+        // been burned in the past (deployedOhm - poolOhmShare - circulatingOhmBurned). Net removed
+        // is the amount of OHM that is in the pool but wasn’t minted there plus what has been burned
+        // in the past (poolOhmShare + circulatingOhmBurned - deployedOhm). Here we just return
+        // the data components to calculate these data points.
 
         uint256 currentPoolOhmShare = getPoolOhmShare();
         return (currentPoolOhmShare, deployedOhm, circulatingOhmBurned);
