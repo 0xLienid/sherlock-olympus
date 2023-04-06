@@ -730,6 +730,26 @@ contract BLVaultManagerLidoTest is Test {
         assertTrue(auraRate > 0);
     }
 
+    /// [X]  getPoolOhmShare
+    ///     [X]  returns correct OHM share
+
+    function testCorrectness_getPoolOhmShare() public {
+        address aliceVault = _createVault();
+
+        // Check state before
+        assertEq(vaultManager.getPoolOhmShare(), 0);
+
+        // Deposit wstETH
+        vm.startPrank(alice);
+        wsteth.approve(aliceVault, type(uint256).max);
+        BLVaultLido(aliceVault).deposit(1e18, 0);
+        vm.stopPrank();
+
+        // Check state after
+        console2.log("Vault OHM share", vaultManager.getPoolOhmShare());
+        assertTrue(vaultManager.getPoolOhmShare() > 0);
+    }
+
     /// [X]  getOhmTknPrice
     ///     [X]  returns correct OHM per wstETH (100)
 
