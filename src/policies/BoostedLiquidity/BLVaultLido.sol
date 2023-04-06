@@ -30,7 +30,6 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
-    error BLVaultLido_InvalidWithdrawal();
 
     // ========= EVENTS ========= //
 
@@ -214,9 +213,6 @@ contract BLVaultLido is IBLVaultLido, Clone {
         OlympusERC20Token ohm = ohm();
         ERC20 wsteth = wsteth();
         IBLVaultManagerLido manager = manager();
-
-        // Check if LP amount is valid
-        if (lpAmount_ > lpBalance) revert BLVaultLido_InvalidWithdrawal();
 
         // Cache OHM and wstETH balances before
         uint256 ohmBefore = ohm.balanceOf(address(this));

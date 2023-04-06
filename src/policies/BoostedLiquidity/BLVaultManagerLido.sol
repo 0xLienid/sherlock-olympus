@@ -275,7 +275,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
     /// @inheritdoc IBLVaultManagerLido
     function decreaseTotalLp(uint256 amount_) external override onlyWhileActive onlyVault {
-        if (amount_ > totalLp) revert BLManagerLido_InvalidLpAmount();
+        if (amount_ > totalLp) amount_ = totalLp;
         totalLp -= amount_;
     }
 
