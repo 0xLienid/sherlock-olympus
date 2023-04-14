@@ -768,7 +768,7 @@ contract BLVaultManagerLidoTest is Test {
 
         // Reset OHM value and decrease stETH value
         ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
-        stethEthPriceFeed.setLatestAnswer(9e17); // 0.9 ETH
+        stethUsdPriceFeed.setLatestAnswer(900e8); // 900 USD
         price = vaultManager.getOhmTknPrice();
         assertEq(price, 90e9);
     }
@@ -788,7 +788,7 @@ contract BLVaultManagerLidoTest is Test {
 
         // Reset OHM value and decrease stETH value
         ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
-        stethEthPriceFeed.setLatestAnswer(5e17); // 0.9 ETH
+        stethUsdPriceFeed.setLatestAnswer(500e8); // 500 USD
         price = vaultManager.getTknOhmPrice();
         assertEq(price, 2e16);
     }

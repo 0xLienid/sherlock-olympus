@@ -507,7 +507,7 @@ contract BLVaultLidoTest is Test {
 
         // Withdraw
         vm.prank(alice);
-        aliceVault.withdraw(aliceLpBalance, minAmountsOut, true);
+        aliceVault.withdraw(aliceLpBalance, minAmountsOut, 0, true);
 
         // Check state after
         assertEq(ohm.balanceOf(address(vault)), 0);
