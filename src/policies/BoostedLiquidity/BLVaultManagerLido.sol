@@ -506,7 +506,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     }
 
     /// @inheritdoc IBLVaultManagerLido
-    function deactivate() external override onlyRole("liquidityvault_admin") {
+    function deactivate() external override onlyRole("emergency_admin") {
         if (!isLidoBLVaultActive) revert BLManagerLido_AlreadyInactive();
 
         isLidoBLVaultActive = false;
