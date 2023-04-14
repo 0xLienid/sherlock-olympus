@@ -11,7 +11,7 @@ import "src/Kernel.sol";
 // Import external dependencies
 import {AggregatorV3Interface} from "interfaces/AggregatorV2V3Interface.sol";
 import {IAuraRewardPool, IAuraMiningLib} from "policies/BoostedLiquidity/interfaces/IAura.sol";
-import {JoinPoolRequest, IVault, IBasePool, IBalancerHelper} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
+import {JoinPoolRequest, ExitPoolRequest, IVault, IBasePool, IBalancerHelper} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
 import {IWsteth} from "policies/BoostedLiquidity/interfaces/ILido.sol";
 
 // Import vault dependencies
@@ -80,6 +80,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     // System Configuration
     uint256 public ohmLimit;
     uint64 public currentFee;
+    uint48 public minWithdrawalDelay;
     bool public isLidoBLVaultActive;
 
     // Constants
@@ -99,7 +100,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         OracleFeed memory stethEthPriceFeed_,
         address implementation_,
         uint256 ohmLimit_,
-        uint64 fee_
+        uint64 fee_,
+        uint48 minWithdrawalDelay_
     ) Policy(kernel_) {
         // Set exchange name
         {
@@ -140,6 +142,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         {
             ohmLimit = ohmLimit_;
             currentFee = fee_;
+            minWithdrawalDelay = minWithdrawalDelay_;
         }
     }
 
@@ -284,6 +287,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     //============================================================================================//
 
     /// @inheritdoc IBLVaultManagerLido
+    function canWithdraw(address user_) external view override returns (bool) {
+        if (address(userVaults[user_]) == address(0)) return false;
+        return userVaults[user_].canWithdraw();
+    }
+    
+    /// @inheritdoc IBLVaultManagerLido
     function getLpBalance(address user_) external view override returns (uint256) {
         if (address(userVaults[user_]) == address(0)) return 0;
         return userVaults[user_].getLpBalance();
@@ -352,6 +361,71 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
             address(this),
             joinPoolRequest
         );
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
+    /// @dev    This is an external function but should only be used in a callstatic from an external
+    ///         source like the frontend.
+    function getExpectedTokensOutProtocol(uint256 lpAmount_) external override returns (uint256[] memory expectedTokenAmounts) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
+
+        // Build exit pool request
+        address[] memory assets = new address[](2);
+        assets[0] = ohm;
+        assets[1] = pairToken;
+
+        uint256[] memory minAmountsOut = new uint256[](2);
+        minAmountsOut[0] = 0;
+        minAmountsOut[1] = 0;
+
+        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({
+            assets: assets,
+            minAmountsOut: minAmountsOut,
+            userData: abi.encode(1, lpAmount_),
+            toInternalBalance: false
+        });
+
+        (, expectedTokenAmounts) = balancerHelper.queryExit(
+            pool.getPoolId(),
+            address(this),
+            address(this),
+            exitPoolRequest
+        );
+    }
+
+    function getExpectedPairTokenOutUser(uint256 lpAmount_) external override returns (uint256 expectedTknAmount) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
+
+        // Build exit pool request
+        address[] memory assets = new address[](2);
+        assets[0] = ohm;
+        assets[1] = pairToken;
+
+        uint256[] memory minAmountsOut = new uint256[](2);
+        minAmountsOut[0] = 0;
+        minAmountsOut[1] = 0;
+
+        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({
+            assets: assets,
+            minAmountsOut: minAmountsOut,
+            userData: abi.encode(1, lpAmount_),
+            toInternalBalance: false
+        });
+
+        (, uint256[] memory expectedTokenAmounts) = balancerHelper.queryExit(
+            pool.getPoolId(),
+            address(this),
+            address(this),
+            exitPoolRequest
+        );
+
+        // Check against oracle price
+        uint256 tknOhmPrice = getTknOhmPrice();
+        uint256 expectedTknAmountOut = (expectedTokenAmounts[0] * tknOhmPrice) / 1e9;
+
+        expectedTknAmount = expectedTokenAmounts[1] > expectedTknAmountOut ? expectedTknAmountOut : expectedTokenAmounts[1];
     }
 
     /// @inheritdoc IBLVaultManagerLido
@@ -489,6 +563,11 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     }
 
     /// @inheritdoc IBLVaultManagerLido
+    function setWithdrawalDelay(uint48 newDelay_) external override onlyRole("liquidityvault_admin") {
+        minWithdrawalDelay = newDelay_;
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
     function changeUpdateThresholds(
         uint48 ohmEthUpdateThreshold_,
         uint48 stethEthUpdateThreshold_
@@ -506,7 +585,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     }
 
     /// @inheritdoc IBLVaultManagerLido
-    function deactivate() external override onlyRole("liquidityvault_admin") {
+    function deactivate() external override onlyRole("emergency_admin") {
         if (!isLidoBLVaultActive) revert BLManagerLido_AlreadyInactive();
 
         isLidoBLVaultActive = false;
