@@ -27,7 +27,6 @@ contract BLVaultLido is IBLVaultLido, Clone {
 
     error BLVaultLido_AlreadyInitialized();
     error BLVaultLido_OnlyOwner();
-    error BLVaultLido_OnlyManager();
     error BLVaultLido_Active();
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
