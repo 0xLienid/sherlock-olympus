@@ -28,7 +28,7 @@ interface IAuraRewardPool {
 
     function getReward(address account_, bool claimExtras_) external;
 
-    function withdrawAndUnwrap(uint256 amount_, bool claim_) external;
+    function withdrawAndUnwrap(uint256 amount_, bool claim_) external returns (bool);
 }
 
 // Define Aura Mining Lib interface
