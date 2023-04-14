@@ -383,7 +383,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         for (uint256 i; i < numExtraRewards; ) {
             IAuraRewardPool extraRewardPool = IAuraRewardPool(auraRewardPool().extraRewards(i));
 
-            address extraRewardToken = extraRewardPool.rewardToken();
+            address extraRewardToken = ISTASHToken(extraRewardPool.rewardToken()).baseToken();
             uint256 extraRewardAmount = extraRewardPool.earned(address(this));
 
             rewards[i + 2] = RewardsData({
