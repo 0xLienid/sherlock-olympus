@@ -35,3 +35,8 @@ interface IAuraRewardPool {
 interface IAuraMiningLib {
     function convertCrvToCvx(uint256 amount_) external view returns (uint256);
 }
+
+// Define Aura STASH Token Interface
+interface ISTASHToken {
+    function baseToken() external view returns (address);
+}
