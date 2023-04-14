@@ -263,8 +263,8 @@ contract BLVaultLidoTest is Test {
     ///     [X]  can only be called by the vault's owner
     ///     [X]  correctly increases state values (deployedOhm and totalLp)
     ///     [X]  correctly deploys liquidity
-    ///     []  correctly deploys liquidity when oracle price < pool price
-    ///     []  correctly deploys liquidity when oracle price > pool price
+    ///     [X]  correctly deploys liquidity when oracle price < pool price
+    ///     [X]  correctly deploys liquidity when oracle price > pool price
 
     function testCorrectness_depositCanOnlyBeCalledWhenManagerIsActive() public {
         // Deactivate vault manager
