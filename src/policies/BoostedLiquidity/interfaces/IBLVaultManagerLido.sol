@@ -145,13 +145,17 @@ interface IBLVaultManagerLido {
     /// @return uint256                 OHM that wasn't minted, but was previously circulating that has been burned by the system
     function getOhmSupplyChangeData() external view returns (uint256, uint256, uint256);
 
-    /// @notice                         Gets the number of OHM per 1 wstETH
+    /// @notice                         Gets the number of OHM per 1 wstETH using oracle prices
     /// @return uint256                 OHM per 1 wstETH (9 decimals)
     function getOhmTknPrice() external view returns (uint256);
 
-    /// @notice                         Gets the number of wstETH per 1 OHM
+    /// @notice                         Gets the number of wstETH per 1 OHM using oracle prices
     /// @return uint256                 wstETH per 1 OHM (18 decimals)
     function getTknOhmPrice() external view returns (uint256);
+
+    /// @notice                         Gets the number of OHM per 1 wstETH using pool prices
+    /// @return uint256                 OHM per 1 wstETH (9 decimals)
+    function getOhmTknPoolPrice() external view returns (uint256);
 
     //============================================================================================//
     //                                        ADMIN FUNCTIONS                                     //

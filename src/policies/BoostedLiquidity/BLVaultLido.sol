@@ -156,15 +156,26 @@ contract BLVaultLido is IBLVaultLido, Clone {
         IBasePool liquidityPool = liquidityPool();
         IAuraBooster auraBooster = auraBooster();
 
+        uint256 ohmMintAmount;
+
         // Set last deposit timestamp
         lastDeposit = block.timestamp;
 
+        // Block scope to avoid stack too deep
         // Calculate OHM amount to mint
-        // getOhmTknPrice returns the amount of OHM per 1 wstETH
-        uint256 ohmWstethPrice = manager.getOhmTknPrice();
-        uint256 ohmMintAmount = (amount_ * ohmWstethPrice) / _WSTETH_DECIMALS;
+        {
+            // getOhmTknPrice returns the amount of OHM per 1 wstETH
+            uint256 ohmWstethOraclePrice = manager.getOhmTknPrice();
+            uint256 ohmWstethPoolPrice = manager.getOhmTknPoolPrice();
+
+            // If the expected oracle price mint amount is less than the expected pool price mint amount, use the oracle price
+            // otherwise use the pool price
+            uint256 ohmWstethPrice = ohmWstethOraclePrice < ohmWstethPoolPrice ? ohmWstethOraclePrice : ohmWstethPoolPrice;
+            ohmMintAmount = (amount_ * ohmWstethPrice) / _WSTETH_DECIMALS;
+        }
 
         // Block scope to avoid stack too deep
+        // Get tokens and deposit to Balancer and Aura
         {
             // Cache OHM-wstETH BPT before
             uint256 bptBefore = liquidityPool.balanceOf(address(this));

@@ -338,7 +338,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
 
         // Calculate OHM amount to mint
-        uint256 ohmTknPrice = getOhmTknPrice();
+        uint256 ohmTknOraclePrice = getOhmTknPrice();
+        uint256 ohmTknPoolPrice = getOhmTknPoolPrice();
+
+        // If the expected oracle price mint amount is less than the expected pool price mint amount, use the oracle price
+        // otherwise use the pool price
+        uint256 ohmTknPrice = ohmTknOraclePrice < ohmTknPoolPrice ? ohmTknOraclePrice : ohmTknPoolPrice;
         uint256 ohmMintAmount = (amount_ * ohmTknPrice) / 1e18;
 
         // Build join pool request
@@ -559,6 +564,19 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
 
         // Calculate wstETH per OHM (18 decimals)
         return (ethPerOhm * usdPerEth * 1e18) / (stethPerWsteth * usdPerSteth);
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
+    function getOhmTknPoolPrice() public view override returns (uint256) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IVault vault = IVault(balancerData.vault);
+
+        // Get token balances
+        (, uint256[] memory balances, ) = vault.getPoolTokens(pool.getPoolId());
+
+        // Get OHM per wstETH (9 decimals)
+        if (balances[1] == 0) return 0;
+        else return (balances[0] * 1e18) / balances[1];
     }
 
     //============================================================================================//
