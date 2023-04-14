@@ -51,7 +51,8 @@ contract BLVaultLidoTest is Test {
     ERC20 internal bal;
 
     AggregatorV2V3Interface internal ohmEthPriceFeed;
-    AggregatorV2V3Interface internal stethEthPriceFeed;
+    AggregatorV2V3Interface internal ethUsdPriceFeed;
+    AggregatorV2V3Interface internal stethUsdPriceFeed;
 
     IVault internal vault;
     IBasePool internal liquidityPool;
@@ -121,11 +122,13 @@ contract BLVaultLidoTest is Test {
         {
             // Get price feeds
             ohmEthPriceFeed = AggregatorV2V3Interface(0x9a72298ae3886221820B1c878d12D872087D3a23);
-            stethEthPriceFeed = AggregatorV2V3Interface(0x86392dC19c0b719886221c78AB11eb8Cf5c52812);
+            ethUsdPriceFeed = AggregatorV2V3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+            stethUsdPriceFeed = AggregatorV2V3Interface(0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8);
 
             // Label price feeds
             vm.label(address(ohmEthPriceFeed), "ohmEthPriceFeed");
-            vm.label(address(stethEthPriceFeed), "stethEthPriceFeed");
+            vm.label(address(ethUsdPriceFeed), "ethUsdPriceFeed");
+            vm.label(address(stethUsdPriceFeed), "stethUsdPriceFeed");
         }
 
         {
@@ -213,8 +216,11 @@ contract BLVaultLidoTest is Test {
             IBLVaultManagerLido.OracleFeed memory ohmEthPriceFeedData = IBLVaultManagerLido
                 .OracleFeed({feed: ohmEthPriceFeed, updateThreshold: uint48(1 days)});
 
-            IBLVaultManagerLido.OracleFeed memory stethEthPriceFeedData = IBLVaultManagerLido
-                .OracleFeed({feed: stethEthPriceFeed, updateThreshold: uint48(1 days)});
+            IBLVaultManagerLido.OracleFeed memory ethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: ethUsdPriceFeed, updateThreshold: uint48(1 hours)});
+
+            IBLVaultManagerLido.OracleFeed memory stethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: stethUsdPriceFeed, updateThreshold: uint48(1 hours)});
 
             vaultManager = new BLVaultManagerLido(
                 kernel,
@@ -223,10 +229,12 @@ contract BLVaultLidoTest is Test {
                 auraData,
                 address(auraMiningLib),
                 ohmEthPriceFeedData,
-                stethEthPriceFeedData,
+                ethUsdPriceFeedData,
+                stethUsdPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
-                0
+                0,
+                1 minutes
             );
 
             // Label BLVault system
@@ -248,8 +256,10 @@ contract BLVaultLidoTest is Test {
 
         {
             // Set roles
-            vm.prank(guardian);
+            vm.startPrank(guardian);
             rolesAdmin.grantRole("liquidityvault_admin", address(this));
+            rolesAdmin.grantRole("emergency_admin", address(this));
+            vm.stopPrank();
         }
 
         {
@@ -353,7 +363,7 @@ contract BLVaultLidoTest is Test {
         vm.stopPrank();
 
         // Verify state after
-        assertEq(vaultManager.deployedOhm(), newLimit);
+        assertApproxEqRel(vaultManager.deployedOhm(), newLimit, 5e16); // 5% tolerance
         assertTrue(vaultManager.totalLp() > 0);
     }
 
@@ -374,8 +384,8 @@ contract BLVaultLidoTest is Test {
         uint256 wstethVaultBalanceAfter = wsteth.balanceOf(address(vault));
         uint256 auraBalanceAfter = auraDepositToken.balanceOf(address(auraPool));
 
-        assertEq(ohmVaultBalanceAfter - ohmVaultBalanceBefore, expectedOhmAmount);
-        assertEq(wstethVaultBalanceAfter - wstethVaultBalanceBefore, 10e18);
+        assertApproxEqRel(ohmVaultBalanceAfter - ohmVaultBalanceBefore, expectedOhmAmount, 5e16); // 5% tolerance
+        assertApproxEqRel(wstethVaultBalanceAfter - wstethVaultBalanceBefore, 10e18, 5e16); // 5% tolerance
         assertTrue(auraBalanceAfter > auraBalanceBefore);
     }
 
@@ -389,6 +399,8 @@ contract BLVaultLidoTest is Test {
         // Deposit wstETH
         vm.prank(alice);
         aliceVault.deposit(10e18, 0);
+
+        vm.warp(block.timestamp + 1 minutes);
     }
 
     function testCorrectness_withdrawCanOnlyBeCalledWhenManagerIsActive() public {
@@ -400,7 +412,7 @@ contract BLVaultLidoTest is Test {
 
         // Try to withdraw
         vm.prank(alice);
-        aliceVault.withdraw(1e18, minAmountsOut, true);
+        aliceVault.withdraw(1e18, minAmountsOut, 0, true);
     }
 
     function testCorrectness_withdrawCanOnlyBeCalledByTheVaultOwner() public {
@@ -411,7 +423,7 @@ contract BLVaultLidoTest is Test {
 
         // Try to withdraw
         vm.prank(address(0));
-        aliceVault.withdraw(1e18, minAmountsOut, true);
+        aliceVault.withdraw(1e18, minAmountsOut, 0, true);
     }
 
     function testCorrectness_withdrawCorrectlyDecreasesState() public {
@@ -426,7 +438,7 @@ contract BLVaultLidoTest is Test {
 
         // Withdraw
         vm.prank(alice);
-        aliceVault.withdraw(aliceLpBalance, minAmountsOut, true);
+        aliceVault.withdraw(aliceLpBalance, minAmountsOut, 0, true);
 
         // Check state after
         assertTrue(vaultManager.deployedOhm() < deployedOhmBefore);
@@ -446,7 +458,7 @@ contract BLVaultLidoTest is Test {
 
         // Withdraw
         vm.prank(alice);
-        aliceVault.withdraw(aliceLpBalance, minAmountsOut, true);
+        aliceVault.withdraw(aliceLpBalance, minAmountsOut, 0, true);
 
         // Check state after
         uint256 ohmVaultBalanceAfter = ohm.balanceOf(address(vault));

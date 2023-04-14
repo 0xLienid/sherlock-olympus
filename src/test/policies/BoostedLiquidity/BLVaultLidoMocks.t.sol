@@ -224,6 +224,7 @@ contract BLVaultLidoTest is Test {
         // Set roles
         {
             rolesAdmin.grantRole("liquidityvault_admin", address(this));
+            rolesAdmin.grantRole("emergency_admin", address(this));
         }
 
         // Activate Vault Manager
@@ -372,7 +373,7 @@ contract BLVaultLidoTest is Test {
 
         // Try to withdraw
         vm.prank(alice);
-        aliceVault.withdraw(1e18, minAmountsOut, true);
+        aliceVault.withdraw(1e18, minAmountsOut, 0, true);
     }
 
     function testCorrectness_withdrawCanOnlyBeCalledByTheVaultOwner(address attacker_) public {

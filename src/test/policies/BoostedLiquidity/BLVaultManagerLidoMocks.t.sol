@@ -218,6 +218,7 @@ contract BLVaultManagerLidoTest is Test {
         // Set roles
         {
             rolesAdmin.grantRole("liquidityvault_admin", address(this));
+            rolesAdmin.grantRole("emergency_admin", address(this));
         }
 
         // Activate Vault Manager
@@ -837,7 +838,7 @@ contract BLVaultManagerLidoTest is Test {
     }
 
     /// [X]  deactivate
-    ///     [X]  can only be called by liquidityvault_admin
+    ///     [X]  can only be called by emergency_admin
     ///     [X]  sets isLidoBLVaultActive to false
 
     function testCorrectness_deactivateCanOnlyBeCalledByAdmin(address attacker_) public {
@@ -845,7 +846,7 @@ contract BLVaultManagerLidoTest is Test {
 
         bytes memory err = abi.encodeWithSelector(
             ROLESv1.ROLES_RequireRole.selector,
-            bytes32("liquidityvault_admin")
+            bytes32("emergency_admin")
         );
         vm.expectRevert(err);
 

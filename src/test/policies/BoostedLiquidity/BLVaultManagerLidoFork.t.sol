@@ -49,9 +49,11 @@ contract BLVaultManagerLidoTest is Test {
     ERC20 internal wsteth;
     ERC20 internal aura;
     ERC20 internal bal;
+    ERC20 internal stashLdo;
 
     AggregatorV2V3Interface internal ohmEthPriceFeed;
-    AggregatorV2V3Interface internal stethEthPriceFeed;
+    AggregatorV2V3Interface internal ethUsdPriceFeed;
+    AggregatorV2V3Interface internal stethUsdPriceFeed;
 
     IVault internal vault;
     IBasePool internal liquidityPool;
@@ -105,22 +107,26 @@ contract BLVaultManagerLidoTest is Test {
             wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
             aura = ERC20(0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF);
             bal = ERC20(0xba100000625a3754423978a60c9317c58a424e3D);
+            stashLdo = ERC20(0x97b8689957fea086D88375AEF1569281ea1d12BD);
 
             // Label tokens
             vm.label(address(ohm), "ohm");
             vm.label(address(wsteth), "wsteth");
             vm.label(address(aura), "aura");
             vm.label(address(bal), "bal");
+            vm.label(address(stashLdo), "stashLdo");
         }
 
         {
             // Get price feeds
             ohmEthPriceFeed = AggregatorV2V3Interface(0x9a72298ae3886221820B1c878d12D872087D3a23);
-            stethEthPriceFeed = AggregatorV2V3Interface(0x86392dC19c0b719886221c78AB11eb8Cf5c52812);
+            ethUsdPriceFeed = AggregatorV2V3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+            stethUsdPriceFeed = AggregatorV2V3Interface(0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8);
 
             // Label price feeds
             vm.label(address(ohmEthPriceFeed), "ohmEthPriceFeed");
-            vm.label(address(stethEthPriceFeed), "stethEthPriceFeed");
+            vm.label(address(ethUsdPriceFeed), "ethUsdPriceFeed");
+            vm.label(address(stethUsdPriceFeed), "stethUsdPriceFeed");
         }
 
         {
@@ -206,8 +212,11 @@ contract BLVaultManagerLidoTest is Test {
             IBLVaultManagerLido.OracleFeed memory ohmEthPriceFeedData = IBLVaultManagerLido
                 .OracleFeed({feed: ohmEthPriceFeed, updateThreshold: uint48(1 days)});
 
-            IBLVaultManagerLido.OracleFeed memory stethEthPriceFeedData = IBLVaultManagerLido
-                .OracleFeed({feed: stethEthPriceFeed, updateThreshold: uint48(1 days)});
+            IBLVaultManagerLido.OracleFeed memory ethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: ethUsdPriceFeed, updateThreshold: uint48(1 hours)});
+
+            IBLVaultManagerLido.OracleFeed memory stethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: stethUsdPriceFeed, updateThreshold: uint48(1 hours)});
 
             vaultManager = new BLVaultManagerLido(
                 kernel,
@@ -216,10 +225,12 @@ contract BLVaultManagerLidoTest is Test {
                 auraData,
                 address(auraMiningLib),
                 ohmEthPriceFeedData,
-                stethEthPriceFeedData,
+                ethUsdPriceFeedData,
+                stethUsdPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
-                0
+                0,
+                1 minutes
             );
 
             // Label BLVault system
@@ -241,8 +252,10 @@ contract BLVaultManagerLidoTest is Test {
 
         {
             // Set roles
-            vm.prank(guardian);
+            vm.startPrank(guardian);
             rolesAdmin.grantRole("liquidityvault_admin", address(this));
+            rolesAdmin.grantRole("emergency_admin", address(this));
+            vm.stopPrank();
         }
 
         {
@@ -714,9 +727,10 @@ contract BLVaultManagerLidoTest is Test {
     function testCorrectness_getRewardTokens() public {
         address[] memory tokens = vaultManager.getRewardTokens();
 
-        assertEq(tokens.length, 2);
+        assertEq(tokens.length, 3);
         assertEq(tokens[0], address(aura));
         assertEq(tokens[1], address(bal));
+        assertEq(tokens[2], address(stashLdo));
     }
 
     /// [X]  getRewardRate
@@ -858,22 +872,25 @@ contract BLVaultManagerLidoTest is Test {
         vm.expectRevert(err);
 
         vm.prank(address(0));
-        vaultManager.changeUpdateThresholds(1 days, 1 days);
+        vaultManager.changeUpdateThresholds(1 days, 1 days, 1 days);
     }
 
     function testCorrectness_changeUpdateThresholdsCorrectlySetsThresholds(
         uint48 ohmPriceThreshold_,
+        uint48 ethPriceThreshold_,
         uint48 stethPriceThreshold_
     ) public {
         // Set thresholds
-        vaultManager.changeUpdateThresholds(ohmPriceThreshold_, stethPriceThreshold_);
+        vaultManager.changeUpdateThresholds(ohmPriceThreshold_, ethPriceThreshold_, stethPriceThreshold_);
 
         // Check state after
         (, uint48 ohmEthUpdateThreshold) = vaultManager.ohmEthPriceFeed();
-        (, uint48 stethEthUpdateThreshold) = vaultManager.stethEthPriceFeed();
+        (, uint48 ethUsdUpdateThreshold) = vaultManager.ethUsdPriceFeed();
+        (, uint48 stethUsdUpdateThreshold) = vaultManager.stethUsdPriceFeed();
 
         assertEq(ohmEthUpdateThreshold, ohmPriceThreshold_);
-        assertEq(stethEthUpdateThreshold, stethPriceThreshold_);
+        assertEq(ethUsdUpdateThreshold, ethPriceThreshold_);
+        assertEq(stethUsdUpdateThreshold, stethPriceThreshold_);
     }
 
     /// [X]  activate
@@ -908,13 +925,13 @@ contract BLVaultManagerLidoTest is Test {
     }
 
     /// [X]  deactivate
-    ///     [X]  can only be called by liquidityvault_admin
+    ///     [X]  can only be called by emergency_admin
     ///     [X]  sets isLidoBLVaultActive to false
 
     function testCorrectness_deactivateCanOnlyBeCalledByAdmin() public {
         bytes memory err = abi.encodeWithSelector(
             ROLESv1.ROLES_RequireRole.selector,
-            bytes32("liquidityvault_admin")
+            bytes32("emergency_admin")
         );
         vm.expectRevert(err);
 
