@@ -11,7 +11,7 @@ import "src/Kernel.sol";
 // Import external dependencies
 import {AggregatorV3Interface} from "interfaces/AggregatorV2V3Interface.sol";
 import {IAuraRewardPool, IAuraMiningLib} from "policies/BoostedLiquidity/interfaces/IAura.sol";
-import {JoinPoolRequest, IVault, IBasePool, IBalancerHelper} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
+import {JoinPoolRequest, ExitPoolRequest, IVault, IBasePool, IBalancerHelper} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
 import {IWsteth} from "policies/BoostedLiquidity/interfaces/ILido.sol";
 
 // Import vault dependencies
@@ -361,6 +361,71 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
             address(this),
             joinPoolRequest
         );
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
+    /// @dev    This is an external function but should only be used in a callstatic from an external
+    ///         source like the frontend.
+    function getExpectedTokensOutProtocol(uint256 lpAmount_) external override returns (uint256[] memory expectedTokenAmounts) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
+
+        // Build exit pool request
+        address[] memory assets = new address[](2);
+        assets[0] = ohm;
+        assets[1] = pairToken;
+
+        uint256[] memory minAmountsOut = new uint256[](2);
+        minAmountsOut[0] = 0;
+        minAmountsOut[1] = 0;
+
+        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({
+            assets: assets,
+            minAmountsOut: minAmountsOut,
+            userData: abi.encode(1, lpAmount_),
+            toInternalBalance: false
+        });
+
+        (, expectedTokenAmounts) = balancerHelper.queryExit(
+            pool.getPoolId(),
+            address(this),
+            address(this),
+            exitPoolRequest
+        );
+    }
+
+    function getExpectedPairTokenOutUser(uint256 lpAmount_) external override returns (uint256 expectedTknAmount) {
+        IBasePool pool = IBasePool(balancerData.liquidityPool);
+        IBalancerHelper balancerHelper = IBalancerHelper(balancerData.balancerHelper);
+
+        // Build exit pool request
+        address[] memory assets = new address[](2);
+        assets[0] = ohm;
+        assets[1] = pairToken;
+
+        uint256[] memory minAmountsOut = new uint256[](2);
+        minAmountsOut[0] = 0;
+        minAmountsOut[1] = 0;
+
+        ExitPoolRequest memory exitPoolRequest = ExitPoolRequest({
+            assets: assets,
+            minAmountsOut: minAmountsOut,
+            userData: abi.encode(1, lpAmount_),
+            toInternalBalance: false
+        });
+
+        (, uint256[] memory expectedTokenAmounts) = balancerHelper.queryExit(
+            pool.getPoolId(),
+            address(this),
+            address(this),
+            exitPoolRequest
+        );
+
+        // Check against oracle price
+        uint256 tknOhmPrice = getTknOhmPrice();
+        uint256 expectedTknAmountOut = (expectedTokenAmounts[0] * tknOhmPrice) / 1e9;
+
+        expectedTknAmount = expectedTokenAmounts[1] > expectedTknAmountOut ? expectedTknAmountOut : expectedTokenAmounts[1];
     }
 
     /// @inheritdoc IBLVaultManagerLido

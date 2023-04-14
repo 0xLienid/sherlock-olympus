@@ -30,6 +30,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
+    error BLVaultLido_WithdrawFailedPriceImbalance();
     error BLVaultLido_WithdrawalDelay();
 
     // ========= EVENTS ========= //
@@ -209,7 +210,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
     /// @inheritdoc IBLVaultLido
     function withdraw(
         uint256 lpAmount_,
-        uint256[] calldata minTokenAmounts_,
+        uint256[] calldata minTokenAmountsBalancer_,
+        uint256 minTokenAmountUser_,
         bool claim_
     ) external override onlyWhileActive onlyOwner nonReentrant returns (uint256, uint256) {
         // Cache variables into memory
@@ -231,7 +233,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         auraRewardPool().withdrawAndUnwrap(lpAmount_, claim_);
 
         // Exit Balancer pool
-        _exitBalancerPool(lpAmount_, minTokenAmounts_);
+        _exitBalancerPool(lpAmount_, minTokenAmountsBalancer_);
 
         // Calculate OHM and wstETH amounts received
         uint256 ohmAmountOut = ohm.balanceOf(address(this)) - ohmBefore;
@@ -246,6 +248,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
         uint256 wstethToReturn = wstethAmountOut > expectedWstethAmountOut
             ? expectedWstethAmountOut
             : wstethAmountOut;
+
+        if (wstethToReturn < minTokenAmountUser_) revert BLVaultLido_WithdrawFailedPriceImbalance();
         if (wstethAmountOut > wstethToReturn)
             wsteth.safeTransfer(TRSRY(), wstethAmountOut - wstethToReturn);
 
