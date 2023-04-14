@@ -196,7 +196,8 @@ contract BLVaultManagerLidoTest is Test {
                 stethUsdPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
-                0
+                0,
+                1 days
             );
             rolesAdmin = new RolesAdmin(kernel);
         }

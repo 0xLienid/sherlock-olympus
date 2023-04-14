@@ -30,6 +30,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Inactive();
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
+    error BLVaultLido_WithdrawFailedPriceImbalance();
+    error BLVaultLido_WithdrawalDelay();
 
     // ========= EVENTS ========= //
 
@@ -38,6 +40,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
     event RewardsClaimed(address indexed rewardsToken, uint256 amount);
 
     // ========= STATE VARIABLES ========= //
+
+    /// @notice The last timestamp a deposit was made. Used for enforcing minimum deposit lengths.
+    uint256 public lastDeposit;
 
     uint256 private constant _OHM_DECIMALS = 1e9;
     uint256 private constant _WSTETH_DECIMALS = 1e18;
@@ -151,6 +156,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
         IBasePool liquidityPool = liquidityPool();
         IAuraBooster auraBooster = auraBooster();
 
+        // Set last deposit timestamp
+        lastDeposit = block.timestamp;
+
         // Calculate OHM amount to mint
         // getOhmTknPrice returns the amount of OHM per 1 wstETH
         uint256 ohmWstethPrice = manager.getOhmTknPrice();
@@ -202,13 +210,17 @@ contract BLVaultLido is IBLVaultLido, Clone {
     /// @inheritdoc IBLVaultLido
     function withdraw(
         uint256 lpAmount_,
-        uint256[] calldata minTokenAmounts_,
+        uint256[] calldata minTokenAmountsBalancer_,
+        uint256 minTokenAmountUser_,
         bool claim_
     ) external override onlyWhileActive onlyOwner nonReentrant returns (uint256, uint256) {
         // Cache variables into memory
         OlympusERC20Token ohm = ohm();
         ERC20 wsteth = wsteth();
         IBLVaultManagerLido manager = manager();
+
+        // Check if enough time has passed since the latest deposit
+        if (block.timestamp - lastDeposit < manager.minWithdrawalDelay()) revert BLVaultLido_WithdrawalDelay();
 
         // Cache OHM and wstETH balances before
         uint256 ohmBefore = ohm.balanceOf(address(this));
@@ -221,7 +233,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         auraRewardPool().withdrawAndUnwrap(lpAmount_, claim_);
 
         // Exit Balancer pool
-        _exitBalancerPool(lpAmount_, minTokenAmounts_);
+        _exitBalancerPool(lpAmount_, minTokenAmountsBalancer_);
 
         // Calculate OHM and wstETH amounts received
         uint256 ohmAmountOut = ohm.balanceOf(address(this)) - ohmBefore;
@@ -236,6 +248,8 @@ contract BLVaultLido is IBLVaultLido, Clone {
         uint256 wstethToReturn = wstethAmountOut > expectedWstethAmountOut
             ? expectedWstethAmountOut
             : wstethAmountOut;
+
+        if (wstethToReturn < minTokenAmountUser_) revert BLVaultLido_WithdrawFailedPriceImbalance();
         if (wstethAmountOut > wstethToReturn)
             wsteth.safeTransfer(TRSRY(), wstethAmountOut - wstethToReturn);
 
@@ -272,6 +286,11 @@ contract BLVaultLido is IBLVaultLido, Clone {
     //                                        VIEW FUNCTIONS                                      //
     //============================================================================================//
 
+    /// @inheritdoc IBLVaultLido
+    function canWithdraw() external view override returns (bool) {
+        return block.timestamp - lastDeposit >= manager().minWithdrawalDelay();
+    }
+    
     /// @inheritdoc IBLVaultLido
     function getLpBalance() public view override returns (uint256) {
         return auraRewardPool().balanceOf(address(this));

@@ -41,6 +41,13 @@ interface IBLVaultManagerLido {
     }
 
     //============================================================================================//
+    //                                        STATE VARIABLES                                     //
+    //============================================================================================//
+
+    /// @notice                         The minimum length of time between a deposit and a withdrawal
+    function minWithdrawalDelay() external returns (uint48);
+
+    //============================================================================================//
     //                                        VAULT DEPLOYMENT                                    //
     //============================================================================================//
 
@@ -81,6 +88,11 @@ interface IBLVaultManagerLido {
     //                                         VIEW FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @notice                        Returns whether enough time has passed since the last deposit for the user to be ale to withdraw
+    /// @param user_                   The user to check the vault of
+    /// @return bool                   Whether enough time has passed since the last deposit for the user to be ale to withdraw
+    function canWithdraw(address user_) external view returns (bool);
+    
     /// @notice                         Returns the user's vault's LP balance
     /// @param user_                    The user to check the vault of
     /// @return uint256                 The user's vault's LP balance
@@ -104,6 +116,16 @@ interface IBLVaultManagerLido {
     /// @param amount_                  The amount of wstETH to calculate the LP tokens for
     /// @return uint256                 The amount of LP tokens that will be generated
     function getExpectedLpAmount(uint256 amount_) external returns (uint256);
+
+    /// @notice                         Calculates the amount of OHM and pair tokens that should be received by the vault for withdrawing a given amount of LP tokens
+    /// @param lpAmount_                The amount of LP tokens to calculate the OHM and pair tokens for
+    /// @return expectedTokenAmounts    The amount of OHM and pair tokens that should be received
+    function getExpectedTokensOutProtocol(uint256 lpAmount_) external returns (uint256[] memory expectedTokenAmounts);
+
+    /// @notice                         Calculates the amount of pair tokens that should be received by the user for withdrawing a given amount of LP tokens after the treasury takes any arbs
+    /// @param lpAmount_                The amount of LP tokens to calculate the pair tokens for
+    /// @return expectedTknAmount       The amount of pair tokens that should be received
+    function getExpectedPairTokenOutUser(uint256 lpAmount_) external returns (uint256 expectedTknAmount);
 
     /// @notice                         Gets all the reward tokens from the Aura pool
     /// @return address[]               The addresses of the reward tokens
@@ -144,6 +166,11 @@ interface IBLVaultManagerLido {
     /// @dev                            Can only be called by the admin. Cannot be set beyond 10_000 (100%). Only is used by vaults deployed after the update.
     /// @param newFee_                  The new fee (in basis points)
     function setFee(uint64 newFee_) external;
+
+    /// @notice                         Updates the minimum holding period before a user can withdraw
+    /// @dev                            Can only be called by the admin
+    /// @param newDelay_                The new minimum holding period (in seconds)
+    function setWithdrawalDelay(uint48 newDelay_) external;
 
     /// @notice                         Updates the time threshold for oracle staleness checks
     /// @dev                            Can only be called by the admin
