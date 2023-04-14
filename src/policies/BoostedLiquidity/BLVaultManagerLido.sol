@@ -10,7 +10,7 @@ import "src/Kernel.sol";
 
 // Import external dependencies
 import {AggregatorV3Interface} from "interfaces/AggregatorV2V3Interface.sol";
-import {IAuraRewardPool, IAuraMiningLib} from "policies/BoostedLiquidity/interfaces/IAura.sol";
+import {IAuraRewardPool, IAuraMiningLib, ISTASHToken} from "policies/BoostedLiquidity/interfaces/IAura.sol";
 import {JoinPoolRequest, ExitPoolRequest, IVault, IBasePool, IBalancerHelper} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
 import {IWsteth} from "policies/BoostedLiquidity/interfaces/ILido.sol";
 
@@ -450,7 +450,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         rewardTokens[1] = auraPool.rewardToken();
         for (uint256 i; i < numExtraRewards; ) {
             IAuraRewardPool extraRewardPool = IAuraRewardPool(auraPool.extraRewards(i));
-            rewardTokens[i + 2] = extraRewardPool.rewardToken();
+            rewardTokens[i + 2] = ISTASHToken(extraRewardPool.rewardToken()).baseToken();
 
             unchecked {
                 ++i;
@@ -476,7 +476,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
             uint256 numExtraRewards = auraPool.extraRewardsLength();
             for (uint256 i; i < numExtraRewards; ) {
                 IAuraRewardPool extraRewardPool = IAuraRewardPool(auraPool.extraRewards(i));
-                if (rewardToken_ == extraRewardPool.rewardToken()) {
+                if (rewardToken_ == ISTASHToken(extraRewardPool.rewardToken()).baseToken()) {
                     rewardRate = extraRewardPool.rewardRate();
                     break;
                 }
