@@ -31,6 +31,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     error BLVaultLido_Reentrancy();
     error BLVaultLido_AuraDepositFailed();
     error BLVaultLido_WithdrawFailedPriceImbalance();
+    error BLVaultLido_WithdrawalDelay();
 
     // ========= EVENTS ========= //
 
@@ -39,6 +40,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
     event RewardsClaimed(address indexed rewardsToken, uint256 amount);
 
     // ========= STATE VARIABLES ========= //
+
+    /// @notice The last timestamp a deposit was made. Used for enforcing minimum deposit lengths.
+    uint256 public lastDeposit;
 
     uint256 private constant _OHM_DECIMALS = 1e9;
     uint256 private constant _WSTETH_DECIMALS = 1e18;
@@ -152,6 +156,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
         IBasePool liquidityPool = liquidityPool();
         IAuraBooster auraBooster = auraBooster();
 
+        // Set last deposit timestamp
+        lastDeposit = block.timestamp;
+
         // Calculate OHM amount to mint
         // getOhmTknPrice returns the amount of OHM per 1 wstETH
         uint256 ohmWstethPrice = manager.getOhmTknPrice();
@@ -211,6 +218,9 @@ contract BLVaultLido is IBLVaultLido, Clone {
         OlympusERC20Token ohm = ohm();
         ERC20 wsteth = wsteth();
         IBLVaultManagerLido manager = manager();
+
+        // Check if enough time has passed since the latest deposit
+        if (block.timestamp - lastDeposit < manager.minWithdrawalDelay()) revert BLVaultLido_WithdrawalDelay();
 
         // Cache OHM and wstETH balances before
         uint256 ohmBefore = ohm.balanceOf(address(this));
@@ -276,6 +286,11 @@ contract BLVaultLido is IBLVaultLido, Clone {
     //                                        VIEW FUNCTIONS                                      //
     //============================================================================================//
 
+    /// @inheritdoc IBLVaultLido
+    function canWithdraw() external view override returns (bool) {
+        return block.timestamp - lastDeposit >= manager().minWithdrawalDelay();
+    }
+    
     /// @inheritdoc IBLVaultLido
     function getLpBalance() public view override returns (uint256) {
         return auraRewardPool().balanceOf(address(this));

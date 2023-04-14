@@ -80,6 +80,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     // System Configuration
     uint256 public ohmLimit;
     uint64 public currentFee;
+    uint48 public minWithdrawalDelay;
     bool public isLidoBLVaultActive;
 
     // Constants
@@ -99,7 +100,8 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         OracleFeed memory stethEthPriceFeed_,
         address implementation_,
         uint256 ohmLimit_,
-        uint64 fee_
+        uint64 fee_,
+        uint48 minWithdrawalDelay_
     ) Policy(kernel_) {
         // Set exchange name
         {
@@ -140,6 +142,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         {
             ohmLimit = ohmLimit_;
             currentFee = fee_;
+            minWithdrawalDelay = minWithdrawalDelay_;
         }
     }
 
@@ -283,6 +286,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     //                                         VIEW FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @inheritdoc IBLVaultManagerLido
+    function canWithdraw(address user_) external view override returns (bool) {
+        if (address(userVaults[user_]) == address(0)) return false;
+        return userVaults[user_].canWithdraw();
+    }
+    
     /// @inheritdoc IBLVaultManagerLido
     function getLpBalance(address user_) external view override returns (uint256) {
         if (address(userVaults[user_]) == address(0)) return 0;
@@ -554,6 +563,11 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     }
 
     /// @inheritdoc IBLVaultManagerLido
+    function setWithdrawalDelay(uint48 newDelay_) external override onlyRole("liquidityvault_admin") {
+        minWithdrawalDelay = newDelay_;
+    }
+
+    /// @inheritdoc IBLVaultManagerLido
     function changeUpdateThresholds(
         uint48 ohmEthUpdateThreshold_,
         uint48 stethEthUpdateThreshold_
@@ -571,7 +585,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     }
 
     /// @inheritdoc IBLVaultManagerLido
-    function deactivate() external override onlyRole("liquidityvault_admin") {
+    function deactivate() external override onlyRole("emergency_admin") {
         if (!isLidoBLVaultActive) revert BLManagerLido_AlreadyInactive();
 
         isLidoBLVaultActive = false;

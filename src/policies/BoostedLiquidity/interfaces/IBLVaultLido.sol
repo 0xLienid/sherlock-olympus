@@ -45,15 +45,19 @@ interface IBLVaultLido {
     //                                        VIEW FUNCTIONS                                      //
     //============================================================================================//
 
-    /// @notice                         Gets the LP balance of the contract based on its deposits to Aura
-    /// @return uint256                 LP balance deposited into Aura
+    /// @notice                 Gets whether enough time has passed since the last deposit for the user to be ale to withdraw
+    /// @return bool            Whether enough time has passed since the last deposit for the user to be ale to withdraw
+    function canWithdraw() external view returns (bool);
+    
+    /// @notice                 Gets the LP balance of the contract based on its deposits to Aura
+    /// @return uint256         LP balance deposited into Aura
     function getLpBalance() external view returns (uint256);
 
     /// @notice                         Gets the contract's claim on wstETH based on its LP balance deposited into Aura
     /// @return uint256                 Claim on wstETH
     function getUserPairShare() external view returns (uint256);
 
-    /// @notice                         Returns the vault's unclaimed rewards in Aura
-    /// @return RewardsData[]           The vault's unclaimed rewards in Aura
+    /// @notice                 Returns the vault's unclaimed rewards in Aura
+    /// @return RewardsData[]   The vault's unclaimed rewards in Aura
     function getOutstandingRewards() external view returns (RewardsData[] memory);
 }
