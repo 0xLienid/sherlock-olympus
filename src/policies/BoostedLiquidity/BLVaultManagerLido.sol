@@ -511,15 +511,16 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
         external
         view
         override
-        returns (uint256 poolOhmShare, uint256 deployedOhm, uint256 circulatingOhmBurned)
+        returns (uint256 poolOhmShare, uint256 mintedOhm, uint256 netBurnedOhm)
     {
         // Net emitted is the amount of OHM that was minted to the pool but is no longer in the
         // pool beyond what has been burned in the past. Net removed is the amount of OHM that is
         // in the pool but wasn’t minted there plus what has been burned in the past. Here we just return
         // the data components to calculate that.
 
-        uint256 currentPoolOhmShare = getPoolOhmShare();
-        return (currentPoolOhmShare, deployedOhm, circulatingOhmBurned);
+        uint256 poolOhmShare = getPoolOhmShare();
+        mintedOhm = deployedOhm;
+        netBurnedOhm = circulatingOhmBurned;
     }
 
     /// @inheritdoc IBLVaultManagerLido
