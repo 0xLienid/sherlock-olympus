@@ -161,6 +161,11 @@ interface IBLVaultManagerLido {
     //                                        ADMIN FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @notice                         Emergency burns OHM that has been sent to the manager in the event a user had to emergency withdraw
+    /// @dev                            Can only be called by the admin
+    /// @param amount_                  The amount of OHM to burn
+    function emergencyBurnOhm(uint256 amount_) external;
+
     /// @notice                         Updates the limit on minting OHM
     /// @dev                            Can only be called by the admin. Cannot be set lower than the current outstanding minted OHM.
     /// @param newLimit_                The new OHM limit (9 decimals)

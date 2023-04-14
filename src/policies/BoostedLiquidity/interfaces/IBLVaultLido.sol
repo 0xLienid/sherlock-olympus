@@ -18,7 +18,7 @@ interface IBLVaultLido {
     /// @return lpAmountOut             The amount of LP tokens received by the transaction
     function deposit(uint256 amount_, uint256 minLpAmount_) external returns (uint256 lpAmountOut);
 
-    /// @notice                         Withdraws LP tokens from Balancer, burns the OHM side, and returns the wstETH side to the user
+    /// @notice                         Withdraws LP tokens from Aura and Balancer, burns the OHM side, and returns the wstETH side to the user
     /// @dev                            Can only be called by the owner of the vault
     /// @param lpAmount_                The amount of LP tokens to withdraw from Balancer
     /// @param minTokenAmountsBalancer_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer
@@ -32,6 +32,16 @@ interface IBLVaultLido {
         uint256 minTokenAmountUser_,
         bool claim_
     ) external returns (uint256, uint256);
+
+    /// @notice                 Withdraws LP tokens from Aura and Balancer, returns the wstETH to the user
+    /// @dev                    Can only be called by the owner of the vault. Can only be called when the vault is paused
+    /// @param lpAmount_        The amount of LP tokens to withdraw from Balancer
+    /// @param minTokenAmounts_ The minimum acceptable amounts of OHM (first entry), and wstETH (second entry) to receive back from Balancer
+    /// @return uint256         The amount of OHM received
+    /// @return uint256         The amount of wstETH received
+    function emergencyWithdraw(uint256 lpAmount_, uint256[] calldata minTokenAmounts_)
+        external
+        returns (uint256, uint256);
 
     //============================================================================================//
     //                                       REWARDS FUNCTIONS                                    //

@@ -19,6 +19,9 @@ import {RewardsData} from "policies/BoostedLiquidity/interfaces/IBLVaultLido.sol
 import {IBLVaultManagerLido} from "policies/BoostedLiquidity/interfaces/IBLVaultManagerLido.sol";
 import {BLVaultLido} from "policies/BoostedLiquidity/BLVaultLido.sol";
 
+// Import types
+import {OlympusERC20Token} from "src/external/OlympusERC20.sol";
+
 // Import libraries
 import {ClonesWithImmutableArgs} from "clones/ClonesWithImmutableArgs.sol";
 
@@ -37,6 +40,7 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     error BLManagerLido_InvalidFee();
     error BLManagerLido_BadPriceFeed();
     error BLManagerLido_VaultAlreadyExists();
+    error BLManagerLido_NoUserVault();
 
     // ========= EVENTS ========= //
 
@@ -583,6 +587,12 @@ contract BLVaultManagerLido is Policy, IBLVaultManagerLido, RolesConsumer {
     //                                        ADMIN FUNCTIONS                                     //
     //============================================================================================//
 
+    /// @inheritdoc IBLVaultManagerLido
+    function emergencyBurnOhm(uint256 amount_) external override onlyRole("liquidityvault_admin") {
+        OlympusERC20Token(ohm).increaseAllowance(address(MINTR), amount_);
+        MINTR.burnOhm(address(this), amount_);
+    }
+    
     /// @inheritdoc IBLVaultManagerLido
     function setLimit(uint256 newLimit_) external override onlyRole("liquidityvault_admin") {
         if (newLimit_ < deployedOhm) revert BLManagerLido_InvalidLimit();
