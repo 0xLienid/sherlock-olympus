@@ -62,7 +62,8 @@ contract BLVaultManagerLidoTest is Test {
     MockERC20 internal bal;
 
     MockPriceFeed internal ohmEthPriceFeed;
-    MockPriceFeed internal stethEthPriceFeed;
+    MockPriceFeed internal ethUsdPriceFeed;
+    MockPriceFeed internal stethUsdPriceFeed;
 
     MockVault internal vault;
     MockBalancerPool internal liquidityPool;
@@ -108,13 +109,16 @@ contract BLVaultManagerLidoTest is Test {
         // Deploy mock price feeds
         {
             ohmEthPriceFeed = new MockPriceFeed();
-            stethEthPriceFeed = new MockPriceFeed();
+            ethUsdPriceFeed = new MockPriceFeed();
+            stethUsdPriceFeed = new MockPriceFeed();
 
             ohmEthPriceFeed.setDecimals(18);
-            stethEthPriceFeed.setDecimals(18);
+            ethUsdPriceFeed.setDecimals(8);
+            stethUsdPriceFeed.setDecimals(8);
 
             ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
-            stethEthPriceFeed.setLatestAnswer(1e18); // 1 ETH
+            ethUsdPriceFeed.setLatestAnswer(1000e8); // 1000 USD
+            stethUsdPriceFeed.setLatestAnswer(1000e8); // 1000 USD
         }
 
         // Deploy mock Balancer contracts
@@ -175,8 +179,11 @@ contract BLVaultManagerLidoTest is Test {
             IBLVaultManagerLido.OracleFeed memory ohmEthPriceFeedData = IBLVaultManagerLido
                 .OracleFeed({feed: ohmEthPriceFeed, updateThreshold: uint48(1 days)});
 
-            IBLVaultManagerLido.OracleFeed memory stethEthPriceFeedData = IBLVaultManagerLido
-                .OracleFeed({feed: stethEthPriceFeed, updateThreshold: uint48(1 days)});
+            IBLVaultManagerLido.OracleFeed memory ethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: ethUsdPriceFeed, updateThreshold: uint48(1 days)});
+
+            IBLVaultManagerLido.OracleFeed memory stethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: stethUsdPriceFeed, updateThreshold: uint48(1 days)});
 
             vaultManager = new BLVaultManagerLido(
                 kernel,
@@ -185,7 +192,8 @@ contract BLVaultManagerLidoTest is Test {
                 auraData,
                 address(0),
                 ohmEthPriceFeedData,
-                stethEthPriceFeedData,
+                ethUsdPriceFeedData,
+                stethUsdPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
                 0,
@@ -220,7 +228,8 @@ contract BLVaultManagerLidoTest is Test {
         // Initialize timestamps on mock price feeds
         {
             ohmEthPriceFeed.setTimestamp(block.timestamp);
-            stethEthPriceFeed.setTimestamp(block.timestamp);
+            ethUsdPriceFeed.setTimestamp(block.timestamp);
+            stethUsdPriceFeed.setTimestamp(block.timestamp);
         }
 
         // Mint wstETH to alice
@@ -774,22 +783,24 @@ contract BLVaultManagerLidoTest is Test {
         vm.expectRevert(err);
 
         vm.prank(attacker_);
-        vaultManager.changeUpdateThresholds(1 days, 1 days);
+        vaultManager.changeUpdateThresholds(1 days, 1 days, 1 days);
     }
 
     function testCorrectness_changeUpdateThresholdsCorrectlySetsThresholds(
         uint48 ohmPriceThreshold_,
+        uint48 ethPriceThreshold_,
         uint48 stethPriceThreshold_
     ) public {
         // Set thresholds
-        vaultManager.changeUpdateThresholds(ohmPriceThreshold_, stethPriceThreshold_);
+        vaultManager.changeUpdateThresholds(ohmPriceThreshold_, ethPriceThreshold_, stethPriceThreshold_);
 
         // Check state after
         (, uint48 ohmEthUpdateThreshold) = vaultManager.ohmEthPriceFeed();
-        (, uint48 stethEthUpdateThreshold) = vaultManager.stethEthPriceFeed();
+        (, uint48 ethUsdUpdateThreshold) = vaultManager.ethUsdPriceFeed();
+        (, uint48 stethUsdUpdateThreshold) = vaultManager.stethUsdPriceFeed();
 
         assertEq(ohmEthUpdateThreshold, ohmPriceThreshold_);
-        assertEq(stethEthUpdateThreshold, stethPriceThreshold_);
+        assertEq(stethUsdUpdateThreshold, stethPriceThreshold_);
     }
 
     /// [X]  activate

@@ -175,10 +175,12 @@ interface IBLVaultManagerLido {
     /// @notice                         Updates the time threshold for oracle staleness checks
     /// @dev                            Can only be called by the admin
     /// @param ohmEthUpdateThreshold_   The new time threshold for the OHM-ETH oracle
-    /// @param stethEthUpdateThreshold_ The new time threshold for the stETH-ETH oracle
+    /// @param ethUsdUpdateThreshold_   The new time threshold for the ETH-USD oracle
+    /// @param stethUsdUpdateThreshold_ The new time threshold for the stETH-USD oracle
     function changeUpdateThresholds(
         uint48 ohmEthUpdateThreshold_,
-        uint48 stethEthUpdateThreshold_
+        uint48 ethUsdUpdateThreshold_,
+        uint48 stethUsdUpdateThreshold_
     ) external;
 
     /// @notice                         Activates the vault manager and all approved vaults

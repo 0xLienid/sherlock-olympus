@@ -63,7 +63,8 @@ contract BLVaultLidoTest is Test {
     MockERC20 internal bal;
 
     MockPriceFeed internal ohmEthPriceFeed;
-    MockPriceFeed internal stethEthPriceFeed;
+    MockPriceFeed internal ethUsdPriceFeed;
+    MockPriceFeed internal stethUsdPriceFeed;
 
     MockVault internal vault;
     MockBalancerPool internal liquidityPool;
@@ -114,13 +115,16 @@ contract BLVaultLidoTest is Test {
         // Deploy mock price feeds
         {
             ohmEthPriceFeed = new MockPriceFeed();
-            stethEthPriceFeed = new MockPriceFeed();
+            ethUsdPriceFeed = new MockPriceFeed();
+            stethUsdPriceFeed = new MockPriceFeed();
 
             ohmEthPriceFeed.setDecimals(18);
-            stethEthPriceFeed.setDecimals(18);
+            ethUsdPriceFeed.setDecimals(8);
+            stethUsdPriceFeed.setDecimals(8);
 
             ohmEthPriceFeed.setLatestAnswer(1e16); // 0.01 ETH
-            stethEthPriceFeed.setLatestAnswer(1e18); // 1 ETH
+            ethUsdPriceFeed.setLatestAnswer(1000e8); // 1000 USD
+            stethUsdPriceFeed.setLatestAnswer(1000e8); // 1000 USD
         }
 
         // Deploy mock Balancer contracts
@@ -181,8 +185,11 @@ contract BLVaultLidoTest is Test {
             IBLVaultManagerLido.OracleFeed memory ohmEthPriceFeedData = IBLVaultManagerLido
                 .OracleFeed({feed: ohmEthPriceFeed, updateThreshold: uint48(1 days)});
 
-            IBLVaultManagerLido.OracleFeed memory stethEthPriceFeedData = IBLVaultManagerLido
-                .OracleFeed({feed: stethEthPriceFeed, updateThreshold: uint48(1 days)});
+            IBLVaultManagerLido.OracleFeed memory ethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: ethUsdPriceFeed, updateThreshold: uint48(1 days)});
+
+            IBLVaultManagerLido.OracleFeed memory stethUsdPriceFeedData = IBLVaultManagerLido
+                .OracleFeed({feed: stethUsdPriceFeed, updateThreshold: uint48(1 days)});
 
             vaultManager = new BLVaultManagerLido(
                 kernel,
@@ -191,7 +198,8 @@ contract BLVaultLidoTest is Test {
                 auraData,
                 address(0),
                 ohmEthPriceFeedData,
-                stethEthPriceFeedData,
+                ethUsdPriceFeedData,
+                stethUsdPriceFeedData,
                 address(vaultImplementation),
                 100_000e9,
                 0,
@@ -226,7 +234,8 @@ contract BLVaultLidoTest is Test {
         // Initialize timestamps on mock price feeds
         {
             ohmEthPriceFeed.setTimestamp(block.timestamp);
-            stethEthPriceFeed.setTimestamp(block.timestamp);
+            ethUsdPriceFeed.setTimestamp(block.timestamp);
+            stethUsdPriceFeed.setTimestamp(block.timestamp);
         }
 
         // Prepare alice's account
