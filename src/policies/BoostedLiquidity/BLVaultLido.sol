@@ -322,7 +322,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
     /// @inheritdoc IBLVaultLido
     function claimRewards() external override onlyWhileActive onlyOwner nonReentrant {
         // Claim rewards from Aura
-        auraRewardPool().getReward(owner(), true);
+        auraRewardPool().getReward(address(this), true);
 
         // Send rewards to owner
         _sendRewards();
