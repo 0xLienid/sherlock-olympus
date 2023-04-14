@@ -263,6 +263,8 @@ contract BLVaultLidoTest is Test {
     ///     [X]  can only be called by the vault's owner
     ///     [X]  correctly increases state values (deployedOhm and totalLp)
     ///     [X]  correctly deploys liquidity
+    ///     [X]  correctly deploys liquidity when oracle price < pool price
+    ///     [X]  correctly deploys liquidity when oracle price > pool price
 
     function testCorrectness_depositCanOnlyBeCalledWhenManagerIsActive() public {
         // Deactivate vault manager
@@ -334,6 +336,47 @@ contract BLVaultLidoTest is Test {
         assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 100e18);
     }
 
+    function testCorrectness_depositCorrectlyDeploysLiquidityOracleValueLow() public {
+        // Set oracle price to 0.5
+        ohmEthPriceFeed.setLatestAnswer(0.5e18);
+
+        // Verify state before
+        assertEq(ohm.balanceOf(address(vault)), 0);
+        assertEq(wsteth.balanceOf(address(vault)), 0);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 0);
+
+        // Deposit wstETH
+        vm.prank(alice);
+        aliceVault.deposit(100e18, 0);
+
+        // Verify state after
+        uint256 expectedOhmAmount = (100e18 * vaultManager.getOhmTknPrice()) / 1e18;
+        assertEq(ohm.balanceOf(address(vault)), expectedOhmAmount);
+        assertEq(wsteth.balanceOf(address(vault)), 100e18);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 100e18);
+    }
+
+    function testCorrectness_depositCorrectlyDeploysLiquidityOracleValueHigh() public {
+        // Set oracle price to 0.001
+        ohmEthPriceFeed.setLatestAnswer(1e15);
+
+        // Verify state before
+        assertEq(ohm.balanceOf(address(vault)), 0);
+        assertEq(wsteth.balanceOf(address(vault)), 0);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 0);
+
+        // Deposit wstETH
+        vm.prank(alice);
+        aliceVault.deposit(100e18, 0);
+
+        // Verify state after
+        // TODO change 100e9 to ohmWstethPoolPrice
+        uint256 expectedOhmAmount = (100e18 * 100e9) / 1e18;
+        assertEq(ohm.balanceOf(address(vault)), expectedOhmAmount);
+        assertEq(wsteth.balanceOf(address(vault)), 100e18);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 100e18);
+    }
+
     /// [X]  withdraw
     ///     [X]  can only be called when the manager is active
     ///     [X]  can only be called by the vault's owner
@@ -341,6 +384,7 @@ contract BLVaultLidoTest is Test {
     ///     [X]  fails if the cooldown period has not passed
     ///     [X]  correctly decreases state values (deployedOhm and totalLp)
     ///     [X]  correctly withdraws liquidity
+    ///     [X]  correctly withdraws liquidity when oracle price differs from pool price
 
     function _withdrawSetup() internal {
         // Deposit wstETH
@@ -444,6 +488,32 @@ contract BLVaultLidoTest is Test {
         // Check state after
         assertEq(ohm.balanceOf(address(vault)), 0);
         assertEq(wsteth.balanceOf(address(vault)), 0);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 0);
+    }
+
+    function testCorrectness_withdrawCorrectlyWithdrawsLiquidityPriceDiff() public {
+        _withdrawSetup();
+
+        // Set oracle price to 0.001
+        ohmEthPriceFeed.setLatestAnswer(1e15);
+
+        // Get alice vault's LP balance
+        uint256 aliceLpBalance = aliceVault.getLpBalance();
+
+        // Check state before
+        assertEq(ohm.balanceOf(address(vault)), 10_000e9);
+        assertEq(wsteth.balanceOf(address(vault)), aliceLpBalance);
+        assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), aliceLpBalance);
+
+        // Withdraw
+        vm.prank(alice);
+        aliceVault.withdraw(aliceLpBalance, minAmountsOut, 0, true);
+
+        // Check state after
+        assertEq(ohm.balanceOf(address(vault)), 0);
+        assertEq(wsteth.balanceOf(address(vault)), 0);
+        assertEq(wsteth.balanceOf(address(alice)), 10e18);
+        assertEq(wsteth.balanceOf(address(treasury)), 90e18);
         assertEq(ERC20(vault.bpt()).balanceOf(address(auraPool)), 0);
     }
 
