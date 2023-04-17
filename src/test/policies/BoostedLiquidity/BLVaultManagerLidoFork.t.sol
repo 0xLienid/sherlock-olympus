@@ -49,7 +49,7 @@ contract BLVaultManagerLidoTest is Test {
     ERC20 internal wsteth;
     ERC20 internal aura;
     ERC20 internal bal;
-    ERC20 internal stashLdo;
+    ERC20 internal ldo;
 
     AggregatorV2V3Interface internal ohmEthPriceFeed;
     AggregatorV2V3Interface internal ethUsdPriceFeed;
@@ -107,14 +107,14 @@ contract BLVaultManagerLidoTest is Test {
             wsteth = ERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
             aura = ERC20(0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF);
             bal = ERC20(0xba100000625a3754423978a60c9317c58a424e3D);
-            stashLdo = ERC20(0x97b8689957fea086D88375AEF1569281ea1d12BD);
+            ldo = ERC20(0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32);
 
             // Label tokens
             vm.label(address(ohm), "ohm");
             vm.label(address(wsteth), "wsteth");
             vm.label(address(aura), "aura");
             vm.label(address(bal), "bal");
-            vm.label(address(stashLdo), "stashLdo");
+            vm.label(address(ldo), "ldo");
         }
 
         {
@@ -730,7 +730,7 @@ contract BLVaultManagerLidoTest is Test {
         assertEq(tokens.length, 3);
         assertEq(tokens[0], address(aura));
         assertEq(tokens[1], address(bal));
-        assertEq(tokens[2], address(stashLdo));
+        assertEq(tokens[2], address(ldo));
     }
 
     /// [X]  getRewardRate

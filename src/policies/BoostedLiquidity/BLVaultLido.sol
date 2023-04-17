@@ -8,7 +8,7 @@ import {BLVaultManagerLido} from "policies/BoostedLiquidity/BLVaultManagerLido.s
 
 // Import external dependencies
 import {JoinPoolRequest, ExitPoolRequest, IVault, IBasePool} from "policies/BoostedLiquidity/interfaces/IBalancer.sol";
-import {IAuraBooster, IAuraRewardPool, IAuraMiningLib} from "policies/BoostedLiquidity/interfaces/IAura.sol";
+import {IAuraBooster, IAuraRewardPool, IAuraMiningLib, ISTASHToken} from "policies/BoostedLiquidity/interfaces/IAura.sol";
 
 // Import types
 import {OlympusERC20Token} from "src/external/OlympusERC20.sol";
@@ -383,7 +383,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
         for (uint256 i; i < numExtraRewards; ) {
             IAuraRewardPool extraRewardPool = IAuraRewardPool(auraRewardPool().extraRewards(i));
 
-            address extraRewardToken = extraRewardPool.rewardToken();
+            address extraRewardToken = ISTASHToken(extraRewardPool.rewardToken()).baseToken();
             uint256 extraRewardAmount = extraRewardPool.earned(address(this));
 
             rewards[i + 2] = RewardsData({
@@ -492,7 +492,7 @@ contract BLVaultLido is IBLVaultLido, Clone {
             uint256 numExtraRewards = auraRewardPool().extraRewardsLength();
             for (uint256 i; i < numExtraRewards; ) {
                 IAuraRewardPool extraRewardPool = IAuraRewardPool(auraRewardPool().extraRewards(i));
-                ERC20 extraRewardToken = ERC20(extraRewardPool.rewardToken());
+                ERC20 extraRewardToken = ERC20(ISTASHToken(extraRewardPool.rewardToken()).baseToken());
 
                 uint256 extraRewardAmount = extraRewardToken.balanceOf(address(this));
                 uint256 extraRewardFee = (extraRewardAmount * fee()) / 10_000;
